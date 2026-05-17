@@ -76,8 +76,25 @@ export interface AssignmentDto {
 }
 
 export interface AssignmentWithRefsDto extends AssignmentDto {
-  task: { id: string; name: string; projectId: string; projectName: string };
+  task: {
+    id: string;
+    name: string;
+    projectId: string;
+    projectName: string;
+    deadline: string | null;
+    durationHours: number;
+    priority: number;
+    status: TaskStatus;
+  };
   user: { id: string; fullName: string; email: string };
+}
+
+export interface WorkloadEntryDto {
+  userId: string;
+  fullName: string;
+  plannedHours: number;
+  maxHours: number;
+  status: WorkloadStatus;
 }
 
 export interface OptimizerAssignmentDto {
