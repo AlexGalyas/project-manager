@@ -9,9 +9,10 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "pnpm -r --parallel --filter=./apps/* dev",
+    "dev": "pnpm -r --parallel --filter=./apps/* --filter @workforce/shared dev",
     "dev:web": "pnpm --filter @workforce/web dev",
     "dev:api": "pnpm --filter @workforce/api dev",
+    "dev:shared": "pnpm --filter @workforce/shared dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
@@ -24,5 +25,16 @@
   },
   "devDependencies": {
     "typescript": "5.6.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@parcel/watcher",
+      "@prisma/client",
+      "@prisma/engines",
+      "bcrypt",
+      "prisma",
+      "sharp"
+    ]
   }
 }

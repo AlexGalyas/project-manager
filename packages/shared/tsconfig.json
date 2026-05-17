@@ -3,8 +3,14 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "target": "ES2022",
     "noEmit": false,
-    "composite": false
+    "composite": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

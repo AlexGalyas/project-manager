@@ -11,18 +11,40 @@
 .hero {
   max-width: 640px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-3;
 
   h1 {
     font-size: $font-size-2xl;
-    margin-bottom: $space-3;
+    margin: 0 0 $space-2 0;
   }
 
   p {
-    margin: $space-2 0;
+    margin: 0;
   }
 }
 
 .muted {
   color: $color-text-muted;
   font-size: $font-size-sm;
+}
+
+.logout {
+  margin-top: $space-4;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-bg;
+  color: $color-text;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $color-text-muted;
+  }
 }

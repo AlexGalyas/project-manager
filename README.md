@@ -92,7 +92,7 @@ pnpm db:studio        # open Prisma Studio
 This project follows a phased bootstrap. The current state of each phase is summarised here so reviewers can tell what's done.
 
 - **Phase 1 — Skeleton** ✅ monorepo, both apps scaffolded, Docker Compose, AGENTS.md, 4 ADRs.
-- **Phase 2 — DB & Auth** ☐ Prisma schema, first migration, seed, login endpoint.
+- **Phase 2 — DB & Auth** ✅ Prisma schema + initial migration, deterministic seed (1 org, 18 users, 10 skills, 8 projects, 60 tasks), `/api/auth/login` and `/api/auth/me`, Passport-JWT strategy, `@CurrentUser` decorator, `RolesGuard`, error envelope filter, `/login` page + Zustand `authStore` with localStorage persistence.
 - **Phase 3 — Core CRUD** ☐ projects/tasks/skills/users endpoints and web pages.
 - **Phase 4 — Optimizer** ☐ `OptimizerStrategy` interface + `GreedyOptimizer` + `/manager/optimizer` page.
 - **Phase 5 — Workload views** ☐ `/workload`, `/workload/me`, heatmap, employee view.
