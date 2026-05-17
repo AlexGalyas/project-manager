@@ -11,6 +11,7 @@ import { SkillsModule } from './skills/skills.module';
 import { ProjectsModule } from './projects/projects.module';
 import { TasksModule } from './tasks/tasks.module';
 import { AssignmentsModule } from './assignments/assignments.module';
+import { OptimizerModule } from './optimizer/optimizer.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AssignmentsModule } from './assignments/assignments.module';
     ProjectsModule,
     TasksModule,
     AssignmentsModule,
+    OptimizerModule,
   ],
   controllers: [HealthController],
   // Guard order matters: JwtAuthGuard must populate req.user before RolesGuard reads it.
