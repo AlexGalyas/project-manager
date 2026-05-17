@@ -6,15 +6,28 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
+import { UsersModule } from './users/users.module';
+import { SkillsModule } from './skills/skills.module';
+import { ProjectsModule } from './projects/projects.module';
+import { TasksModule } from './tasks/tasks.module';
+import { AssignmentsModule } from './assignments/assignments.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    AuthModule,
+    UsersModule,
+    SkillsModule,
+    ProjectsModule,
+    TasksModule,
+    AssignmentsModule,
+  ],
   controllers: [HealthController],
+  // Guard order matters: JwtAuthGuard must populate req.user before RolesGuard reads it.
+  // Routes opt out of auth with @Public(); roles default to "any authenticated user".
   providers: [
-    // JwtAuthGuard runs globally; @Public-style opt-out is handled by NOT applying it
-    // here and applying it per-controller instead. For Phase 2 we keep the explicit
-    // @UseGuards on protected routes for clarity; the global one below is reserved
-    // for Phase 3 when most routes need auth.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })

@@ -1,0 +1,187 @@
+@use '@/styles/variables' as *;
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: $space-4;
+  gap: $space-4;
+}
+
+.heading {
+  margin: 0 0 $space-1 0;
+  font-size: $font-size-2xl;
+}
+
+.subtitle {
+  margin: 0;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}
+
+.newBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  background: $color-accent;
+  color: #fff;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:hover {
+    background: $color-accent-hover;
+  }
+}
+
+.error {
+  background: $color-status-over;
+  padding: $space-2 $space-3;
+  border-radius: $radius-sm;
+  color: #842029;
+  font-size: $font-size-sm;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 2fr 3fr 1fr;
+  gap: $space-3;
+  align-items: flex-end;
+  padding: $space-4;
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  margin-bottom: $space-4;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: $font-size-sm;
+
+  span {
+    color: $color-text-muted;
+  }
+
+  input,
+  textarea,
+  select {
+    padding: $space-2 $space-3;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    font-family: inherit;
+
+    &:focus {
+      outline: none;
+      border-color: $color-accent;
+    }
+  }
+}
+
+.formActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.submit {
+  padding: $space-2 $space-4;
+  background: $color-accent;
+  color: #fff;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.tableWrap {
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+
+  th,
+  td {
+    text-align: left;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid $color-border;
+  }
+
+  thead th {
+    background: $color-surface;
+    font-weight: 600;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.muted {
+  color: $color-text-muted;
+}
+
+.link {
+  color: $color-text;
+  font-weight: 500;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-accent;
+  }
+}
+
+.actions {
+  text-align: right;
+}
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid $color-border;
+  background: $color-bg;
+  border-radius: $radius-sm;
+  color: $color-text-muted;
+  cursor: pointer;
+
+  &:hover {
+    color: #b91c1c;
+    border-color: #fecaca;
+    background: #fef2f2;
+  }
+}
+
+.prio {
+  display: inline-block;
+  padding: 2px $space-2;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: 500;
+}
+
+.prio_1 { background: $color-surface; color: $color-text-muted; }
+.prio_2 { background: $color-surface; color: $color-text-muted; }
+.prio_3 { background: rgba(37, 99, 235, 0.1); color: $color-accent; }
+.prio_4 { background: rgba(245, 158, 11, 0.15); color: #b45309; }
+.prio_5 { background: rgba(220, 38, 38, 0.12); color: #b91c1c; }

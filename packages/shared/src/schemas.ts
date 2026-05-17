@@ -18,3 +18,51 @@ export const OptimizerRunInputSchema = z.object({
     .optional(),
 });
 export type OptimizerRunInput = z.infer<typeof OptimizerRunInputSchema>;
+
+const isoDate = z
+  .string()
+  .refine((s) => !Number.isNaN(Date.parse(s)), { message: 'must be an ISO date string' });
+
+export const ProjectCreateInputSchema = z.object({
+  name: z.string().min(1).max(120),
+  description: z.string().max(2000).optional(),
+  priority: z.number().int().min(1).max(5).default(3),
+  startDate: isoDate.optional(),
+  endDate: isoDate.optional(),
+});
+export type ProjectCreateInput = z.infer<typeof ProjectCreateInputSchema>;
+
+export const ProjectUpdateInputSchema = ProjectCreateInputSchema.partial();
+export type ProjectUpdateInput = z.infer<typeof ProjectUpdateInputSchema>;
+
+export const TaskStatusSchema = z.enum(['TODO', 'IN_PROGRESS', 'DONE']);
+
+export const TaskCreateInputSchema = z.object({
+  name: z.string().min(1).max(180),
+  durationHours: z.number().positive().max(1000),
+  deadline: isoDate.optional(),
+  priority: z.number().int().min(1).max(5).default(3),
+  status: TaskStatusSchema.default('TODO'),
+  skillIds: z.array(z.string()).max(20).default([]),
+  dependsOnIds: z.array(z.string()).max(20).default([]),
+});
+export type TaskCreateInput = z.infer<typeof TaskCreateInputSchema>;
+
+export const TaskUpdateInputSchema = z
+  .object({
+    name: z.string().min(1).max(180),
+    durationHours: z.number().positive().max(1000),
+    deadline: isoDate.nullable(),
+    priority: z.number().int().min(1).max(5),
+    status: TaskStatusSchema,
+    skillIds: z.array(z.string()).max(20),
+    dependsOnIds: z.array(z.string()).max(20),
+  })
+  .partial();
+export type TaskUpdateInput = z.infer<typeof TaskUpdateInputSchema>;
+
+export const AssignmentListQuerySchema = z.object({
+  userId: z.string().optional(),
+  projectId: z.string().optional(),
+});
+export type AssignmentListQuery = z.infer<typeof AssignmentListQuerySchema>;

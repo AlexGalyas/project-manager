@@ -1,0 +1,104 @@
+@use '@/styles/variables' as *;
+
+.heading {
+  margin: 0 0 $space-2 0;
+  font-size: $font-size-2xl;
+}
+
+.subtitle {
+  margin: 0 0 $space-5 0;
+  color: $color-text-muted;
+  max-width: 640px;
+}
+
+.error {
+  background: $color-status-over;
+  padding: $space-2 $space-3;
+  border-radius: $radius-sm;
+  color: #842029;
+  font-size: $font-size-sm;
+}
+
+.muted {
+  color: $color-text-muted;
+}
+
+.tableWrap {
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+
+  th,
+  td {
+    text-align: left;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid $color-border;
+    vertical-align: top;
+  }
+
+  thead th {
+    background: $color-surface;
+    font-weight: 600;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.role {
+  display: inline-block;
+  padding: 2px $space-2;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.role_ADMIN {
+  background: rgba(37, 99, 235, 0.1);
+  color: $color-accent;
+}
+
+.role_MANAGER {
+  background: rgba(20, 184, 166, 0.12);
+  color: #0f766e;
+}
+
+.role_EMPLOYEE {
+  background: $color-surface;
+  color: $color-text;
+}
+
+.skills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-1;
+}
+
+.skill {
+  background: $color-surface;
+  padding: 2px $space-2;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+}
+
+.level {
+  font-style: normal;
+  color: $color-text-muted;
+  margin-left: 4px;
+}
