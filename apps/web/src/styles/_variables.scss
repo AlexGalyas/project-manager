@@ -1,0 +1,44 @@
+// Color palette
+$color-bg: #ffffff;
+$color-surface: #f8fafc;
+$color-border: #e2e8f0;
+$color-text: #0f172a;
+$color-text-muted: #64748b;
+$color-accent: #2563eb;
+$color-accent-hover: #1d4ed8;
+
+// Status colors (used in workload heatmap, etc.)
+$color-status-under: #d4edda;
+$color-status-normal: #fff3cd;
+$color-status-over: #f8d7da;
+
+// Spacing
+$space-1: 4px;
+$space-2: 8px;
+$space-3: 12px;
+$space-4: 16px;
+$space-5: 24px;
+$space-6: 32px;
+$space-8: 48px;
+
+// Typography
+$font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+$font-family-mono: 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-base: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 22px;
+$font-size-2xl: 28px;
+
+// Layout
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+$shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+
+// Breakpoints
+$bp-sm: 640px;
+$bp-md: 768px;
+$bp-lg: 1024px;

@@ -1,0 +1,39 @@
+@use 'variables' as *;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: $color-bg;
+  color: $color-text;
+  font-family: $font-family-base;
+  font-size: $font-size-base;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: $color-accent;
+  text-decoration: none;
+}
+
+a:hover {
+  color: $color-accent-hover;
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+code,
+pre {
+  font-family: $font-family-mono;
+}

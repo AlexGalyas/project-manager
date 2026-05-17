@@ -1,0 +1,28 @@
+{
+  "name": "workforce-optimizer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workforce Optimizer — bachelor thesis MVP (monorepo root)",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter=./apps/* dev",
+    "dev:web": "pnpm --filter @workforce/web dev",
+    "dev:api": "pnpm --filter @workforce/api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @workforce/api db:migrate",
+    "db:seed": "pnpm --filter @workforce/api db:seed",
+    "db:reset": "pnpm --filter @workforce/api db:reset",
+    "db:studio": "pnpm --filter @workforce/api db:studio"
+  },
+  "devDependencies": {
+    "typescript": "5.6.3"
+  }
+}

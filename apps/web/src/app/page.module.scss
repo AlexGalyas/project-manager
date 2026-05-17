@@ -1,0 +1,28 @@
+@use '@/styles/variables' as *;
+
+.main {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-6;
+}
+
+.hero {
+  max-width: 640px;
+  text-align: center;
+
+  h1 {
+    font-size: $font-size-2xl;
+    margin-bottom: $space-3;
+  }
+
+  p {
+    margin: $space-2 0;
+  }
+}
+
+.muted {
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}
