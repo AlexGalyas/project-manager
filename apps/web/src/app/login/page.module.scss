@@ -1,0 +1,110 @@
+@use '@/styles/variables' as *;
+
+.main {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-5;
+  background: $color-surface;
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  padding: $space-6;
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+
+  h1 {
+    margin: 0;
+    font-size: $font-size-xl;
+  }
+}
+
+.subtitle {
+  margin: 0 0 $space-2 0;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  font-size: $font-size-sm;
+
+  span {
+    color: $color-text-muted;
+  }
+
+  input {
+    padding: $space-2 $space-3;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    font-size: $font-size-base;
+    font-family: inherit;
+
+    &:focus {
+      outline: none;
+      border-color: $color-accent;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+  }
+}
+
+.error {
+  margin: 0;
+  padding: $space-2 $space-3;
+  background: $color-status-over;
+  border-radius: $radius-sm;
+  color: #842029;
+  font-size: $font-size-sm;
+}
+
+.submit {
+  margin-top: $space-2;
+  padding: $space-3;
+  border: none;
+  border-radius: $radius-md;
+  background: $color-accent;
+  color: #fff;
+  font-size: $font-size-base;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: $color-accent-hover;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.hint {
+  margin: $space-3 0 0 0;
+  padding-top: $space-3;
+  border-top: 1px solid $color-border;
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+
+  code {
+    background: $color-surface;
+    padding: 1px 4px;
+    border-radius: $radius-sm;
+  }
+}

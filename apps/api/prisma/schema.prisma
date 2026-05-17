@@ -1,0 +1,149 @@
+// Workforce Optimizer — Prisma schema
+// Every domain entity carries `organizationId` (directly or through a parent),
+// even though the MVP seeds a single organization. See ADR-0002.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  plan      String   @default("demo")
+  createdAt DateTime @default(now())
+
+  users    User[]
+  skills   Skill[]
+  projects Project[]
+}
+
+model User {
+  id               String  @id @default(cuid())
+  organizationId   String
+  email            String  @unique
+  passwordHash     String
+  fullName         String
+  role             Role
+  maxHoursPerWeek  Int     @default(40)
+  createdAt        DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  skills       UserSkill[]
+  assignments  Assignment[]
+
+  @@index([organizationId])
+}
+
+model Skill {
+  id             String @id @default(cuid())
+  organizationId String
+  name           String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users        UserSkill[]
+  tasks        TaskSkill[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model UserSkill {
+  userId  String
+  skillId String
+  level   Int    @default(1)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([userId, skillId])
+  @@index([skillId])
+}
+
+model Project {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  startDate      DateTime?
+  endDate        DateTime?
+  priority       Int      @default(3)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+
+  @@index([organizationId])
+}
+
+model Task {
+  id            String     @id @default(cuid())
+  projectId     String
+  name          String
+  durationHours Float
+  deadline      DateTime?
+  priority      Int        @default(3)
+  status        TaskStatus @default(TODO)
+  createdAt     DateTime   @default(now())
+
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  skills      TaskSkill[]
+  dependsOn   TaskDependency[] @relation("Task_dependencies")
+  dependents  TaskDependency[] @relation("Task_dependents")
+  assignment  Assignment?
+
+  @@index([projectId])
+}
+
+model TaskSkill {
+  taskId  String
+  skillId String
+
+  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, skillId])
+  @@index([skillId])
+}
+
+model TaskDependency {
+  taskId          String
+  dependsOnTaskId String
+
+  task        Task @relation("Task_dependencies", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOn   Task @relation("Task_dependents", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, dependsOnTaskId])
+  @@index([dependsOnTaskId])
+}
+
+model Assignment {
+  id            String   @id @default(cuid())
+  taskId        String   @unique
+  userId        String
+  plannedHours  Float
+  plannedStart  DateTime?
+  plannedEnd    DateTime?
+  createdAt     DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
