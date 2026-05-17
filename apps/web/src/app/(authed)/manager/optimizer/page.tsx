@@ -12,7 +12,9 @@ import { projectsApi } from '@/lib/api/projects';
 import { usersApi } from '@/lib/api/users';
 import { assignmentsApi } from '@/lib/api/assignments';
 import { optimizerApi } from '@/lib/api/optimizer';
+import { toastError, toastSuccess } from '@/stores/ui-store';
 import { EmptyState } from '@/components/EmptyState';
+import { Spinner } from '@/components/Spinner';
 import styles from './page.module.scss';
 
 export default function OptimizerPage() {
@@ -26,7 +28,6 @@ export default function OptimizerPage() {
   const [gamma, setGamma] = useState('0.5');
 
   const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OptimizerResultDto | null>(null);
   const [existingAssignments, setExistingAssignments] =
     useState<AssignmentWithRefsDto[] | null>(null);
@@ -53,8 +54,8 @@ export default function OptimizerPage() {
       setProjects(p);
       setUsers(u);
       setExistingAssignments(a);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load data');
+    } catch (err) {
+      toastError(err, 'Failed to load optimizer data');
     }
   }
 
@@ -65,7 +66,6 @@ export default function OptimizerPage() {
   async function handleRun(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setRunning(true);
-    setError(null);
     setResult(null);
     try {
       const payload = {
@@ -82,11 +82,14 @@ export default function OptimizerPage() {
       };
       const r = await optimizerApi.run(payload);
       setResult(r);
+      toastSuccess(
+        `Run done: ${r.assignments.length} assigned, ${r.unassigned.length} unassigned`,
+      );
       // Refresh existing assignments to reflect persisted data.
       const a = await assignmentsApi.list();
       setExistingAssignments(a);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Run failed');
+      toastError(err, 'Run failed');
     } finally {
       setRunning(false);
     }
@@ -233,11 +236,9 @@ export default function OptimizerPage() {
           </div>
         </fieldset>
 
-        {error && <p className={styles.error}>{error}</p>}
-
         <div className={styles.actions}>
           <button type="submit" className={styles.runBtn} disabled={running}>
-            <Play size={16} />
+            {running ? <Spinner size={14} inline label="Running" /> : <Play size={16} />}
             {running ? 'Running…' : 'Run optimizer'}
           </button>
           <span className={styles.existingNote}>

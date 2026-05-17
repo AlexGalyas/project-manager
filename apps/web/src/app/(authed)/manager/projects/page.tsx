@@ -6,7 +6,9 @@ import { Plus, Trash2 } from 'lucide-react';
 import type { ProjectDto } from '@workforce/shared';
 import { projectsApi } from '@/lib/api/projects';
 import { useAuthStore } from '@/stores/auth-store';
+import { toastError, toastSuccess } from '@/stores/ui-store';
 import { EmptyState } from '@/components/EmptyState';
+import { Spinner } from '@/components/Spinner';
 import styles from './page.module.scss';
 
 export default function ProjectsListPage() {
@@ -14,17 +16,21 @@ export default function ProjectsListPage() {
   const isAdmin = role === 'ADMIN';
 
   const [projects, setProjects] = useState<ProjectDto[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   const [form, setForm] = useState({ name: '', description: '', priority: '3' });
   const [busy, setBusy] = useState(false);
 
-  function refresh() {
-    return projectsApi
-      .list()
-      .then(setProjects)
-      .catch((e: Error) => setError(e.message));
+  async function refresh() {
+    try {
+      setLoadError(null);
+      setProjects(await projectsApi.list());
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load projects';
+      setLoadError(message);
+      toastError(err, 'Failed to load projects');
+    }
   }
 
   useEffect(() => {
@@ -34,7 +40,6 @@ export default function ProjectsListPage() {
   async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
-    setError(null);
     try {
       await projectsApi.create({
         name: form.name,
@@ -43,9 +48,10 @@ export default function ProjectsListPage() {
       });
       setForm({ name: '', description: '', priority: '3' });
       setCreating(false);
+      toastSuccess('Project created');
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Create failed');
+      toastError(err, 'Create failed');
     } finally {
       setBusy(false);
     }
@@ -55,9 +61,10 @@ export default function ProjectsListPage() {
     if (!confirm(`Delete project "${name}"? This removes all its tasks too.`)) return;
     try {
       await projectsApi.remove(id);
+      toastSuccess(`Project "${name}" deleted`);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed');
+      toastError(err, 'Delete failed');
     }
   }
 
@@ -67,20 +74,20 @@ export default function ProjectsListPage() {
         <div>
           <h1 className={styles.heading}>Projects</h1>
           <p className={styles.subtitle}>
-            {projects ? `${projects.length} project${projects.length === 1 ? '' : 's'}` : 'Loading…'}
+            {projects
+              ? `${projects.length} project${projects.length === 1 ? '' : 's'}`
+              : loadError
+                ? 'Could not load projects'
+                : 'Loading…'}
           </p>
         </div>
-        <button
-          type="button"
-          className={styles.newBtn}
-          onClick={() => setCreating((v) => !v)}
-        >
+        <button type="button" className={styles.newBtn} onClick={() => setCreating((v) => !v)}>
           <Plus size={16} />
           {creating ? 'Cancel' : 'New project'}
         </button>
       </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {loadError && <p className={styles.error}>{loadError}</p>}
 
       {creating && (
         <form className={styles.form} onSubmit={handleCreate}>
@@ -117,6 +124,8 @@ export default function ProjectsListPage() {
           </div>
         </form>
       )}
+
+      {!projects && !loadError && <Spinner />}
 
       {projects && projects.length === 0 && !creating && (
         <EmptyState

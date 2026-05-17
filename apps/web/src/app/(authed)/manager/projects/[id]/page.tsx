@@ -14,7 +14,9 @@ import { projectsApi } from '@/lib/api/projects';
 import { tasksApi } from '@/lib/api/tasks';
 import { skillsApi } from '@/lib/api/skills';
 import { useAuthStore } from '@/stores/auth-store';
+import { toastError, toastSuccess } from '@/stores/ui-store';
 import { EmptyState } from '@/components/EmptyState';
+import { Spinner } from '@/components/Spinner';
 import styles from './page.module.scss';
 
 const STATUS_OPTIONS: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE'];
@@ -28,23 +30,29 @@ export default function ProjectDetailPage() {
 
   const [project, setProject] = useState<ProjectWithTasksDto | null>(null);
   const [skills, setSkills] = useState<SkillDto[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
+      setLoadError(null);
       const detail = await projectsApi.detail(projectId);
       setProject(detail);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load project');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load project';
+      setLoadError(message);
+      toastError(err, 'Failed to load project');
     }
   }, [projectId]);
 
   useEffect(() => {
     refresh();
-    skillsApi.list().then(setSkills).catch(() => {});
+    skillsApi
+      .list()
+      .then(setSkills)
+      .catch((err) => toastError(err, 'Failed to load skills'));
   }, [refresh]);
 
   async function handleDeleteProject() {
@@ -52,9 +60,10 @@ export default function ProjectDetailPage() {
     if (!confirm(`Delete project "${project.name}"? This removes all its tasks too.`)) return;
     try {
       await projectsApi.remove(project.id);
+      toastSuccess(`Project "${project.name}" deleted`);
       router.push('/manager/projects');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Delete failed');
+    } catch (err) {
+      toastError(err, 'Delete failed');
     }
   }
 
@@ -62,25 +71,26 @@ export default function ProjectDetailPage() {
     if (!confirm(`Delete task "${name}"?`)) return;
     try {
       await tasksApi.remove(id);
+      toastSuccess(`Task "${name}" deleted`);
       await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Delete failed');
+    } catch (err) {
+      toastError(err, 'Delete failed');
     }
   }
 
-  if (error && !project) {
+  if (loadError && !project) {
     return (
       <section>
         <Link href="/manager/projects" className={styles.back}>
           <ChevronLeft size={14} /> Back
         </Link>
-        <p className={styles.error}>{error}</p>
+        <p className={styles.error}>{loadError}</p>
       </section>
     );
   }
 
   if (!project) {
-    return <p className={styles.muted}>Loading…</p>;
+    return <Spinner label="Loading project" />;
   }
 
   return (
@@ -89,17 +99,15 @@ export default function ProjectDetailPage() {
         <ChevronLeft size={14} /> Back to projects
       </Link>
 
-      {error && <p className={styles.error}>{error}</p>}
-
       {editingProject ? (
         <ProjectEditForm
           project={project}
           onCancel={() => setEditingProject(false)}
           onSaved={async () => {
             setEditingProject(false);
+            toastSuccess('Project updated');
             await refresh();
           }}
-          onError={setError}
         />
       ) : (
         <div className={styles.header}>
@@ -125,11 +133,7 @@ export default function ProjectDetailPage() {
               <Pencil size={14} /> Edit
             </button>
             {isAdmin && (
-              <button
-                type="button"
-                className={styles.deleteBtn}
-                onClick={handleDeleteProject}
-              >
+              <button type="button" className={styles.deleteBtn} onClick={handleDeleteProject}>
                 <Trash2 size={14} /> Delete project
               </button>
             )}
@@ -158,9 +162,9 @@ export default function ProjectDetailPage() {
           onCancel={() => setCreatingTask(false)}
           onCreated={async () => {
             setCreatingTask(false);
+            toastSuccess('Task created');
             await refresh();
           }}
-          onError={setError}
           projectId={project.id}
         />
       )}
@@ -199,9 +203,9 @@ export default function ProjectDetailPage() {
                         onCancel={() => setEditingTaskId(null)}
                         onSaved={async () => {
                           setEditingTaskId(null);
+                          toastSuccess('Task updated');
                           await refresh();
                         }}
-                        onError={setError}
                       />
                     </td>
                   </tr>
@@ -270,12 +274,10 @@ function ProjectEditForm({
   project,
   onCancel,
   onSaved,
-  onError,
 }: {
   project: ProjectWithTasksDto;
   onCancel: () => void;
   onSaved: () => Promise<void>;
-  onError: (msg: string) => void;
 }) {
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description ?? '');
@@ -293,7 +295,7 @@ function ProjectEditForm({
       });
       await onSaved();
     } catch (err) {
-      onError(err instanceof Error ? err.message : 'Update failed');
+      toastError(err, 'Update failed');
     } finally {
       setBusy(false);
     }
@@ -341,14 +343,12 @@ function TaskCreateForm({
   existingTasks,
   onCancel,
   onCreated,
-  onError,
 }: {
   projectId: string;
   skills: SkillDto[];
   existingTasks: TaskDto[];
   onCancel: () => void;
   onCreated: () => Promise<void>;
-  onError: (msg: string) => void;
 }) {
   const [name, setName] = useState('');
   const [durationHours, setDurationHours] = useState('8');
@@ -373,7 +373,7 @@ function TaskCreateForm({
       });
       await onCreated();
     } catch (err) {
-      onError(err instanceof Error ? err.message : 'Create failed');
+      toastError(err, 'Create failed');
     } finally {
       setBusy(false);
     }
@@ -409,11 +409,7 @@ function TaskCreateForm({
         </label>
         <label className={styles.field}>
           <span>Deadline</span>
-          <input
-            type="date"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-          />
+          <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
         </label>
       </div>
       <SkillsMultiSelect skills={skills} value={skillIds} onChange={setSkillIds} />
@@ -436,22 +432,18 @@ function TaskEditForm({
   siblings,
   onCancel,
   onSaved,
-  onError,
 }: {
   task: TaskDto;
   skills: SkillDto[];
   siblings: TaskDto[];
   onCancel: () => void;
   onSaved: () => Promise<void>;
-  onError: (msg: string) => void;
 }) {
   const [name, setName] = useState(task.name);
   const [durationHours, setDurationHours] = useState(String(task.durationHours));
   const [priority, setPriority] = useState(String(task.priority));
   const [status, setStatus] = useState<TaskStatus>(task.status);
-  const [deadline, setDeadline] = useState(
-    task.deadline ? task.deadline.slice(0, 10) : '',
-  );
+  const [deadline, setDeadline] = useState(task.deadline ? task.deadline.slice(0, 10) : '');
   const [skillIds, setSkillIds] = useState<string[]>(task.skills.map((s) => s.skillId));
   const [dependsOnIds, setDependsOnIds] = useState<string[]>(task.dependsOnIds);
   const [busy, setBusy] = useState(false);
@@ -471,7 +463,7 @@ function TaskEditForm({
       });
       await onSaved();
     } catch (err) {
-      onError(err instanceof Error ? err.message : 'Update failed');
+      toastError(err, 'Update failed');
     } finally {
       setBusy(false);
     }
@@ -516,11 +508,7 @@ function TaskEditForm({
         </label>
         <label className={styles.field}>
           <span>Deadline</span>
-          <input
-            type="date"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-          />
+          <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
         </label>
       </div>
       <SkillsMultiSelect skills={skills} value={skillIds} onChange={setSkillIds} />

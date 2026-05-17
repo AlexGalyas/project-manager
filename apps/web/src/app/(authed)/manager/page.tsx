@@ -5,17 +5,21 @@ import Link from 'next/link';
 import type { ProjectDto } from '@workforce/shared';
 import { FolderKanban, ListTodo } from 'lucide-react';
 import { projectsApi } from '@/lib/api/projects';
+import { toastError } from '@/stores/ui-store';
 import styles from './page.module.scss';
 
 export default function ManagerDashboard() {
   const [projects, setProjects] = useState<ProjectDto[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     projectsApi
       .list()
       .then(setProjects)
-      .catch((e: Error) => setError(e.message));
+      .catch((err: Error) => {
+        setLoadError(err.message);
+        toastError(err, 'Failed to load projects');
+      });
   }, []);
 
   const taskTotal = projects?.reduce((sum, p) => sum + p.taskCount, 0);
@@ -24,10 +28,10 @@ export default function ManagerDashboard() {
     <section>
       <h1 className={styles.heading}>Manager dashboard</h1>
       <p className={styles.subtitle}>
-        Manage projects and their tasks. Run the optimizer (Phase 4) to assign work.
+        Manage projects and their tasks. Run the optimizer to assign work.
       </p>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {loadError && <p className={styles.error}>{loadError}</p>}
 
       <div className={styles.cards}>
         <article className={styles.card}>

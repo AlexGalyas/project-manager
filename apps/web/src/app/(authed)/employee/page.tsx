@@ -5,17 +5,21 @@ import Link from 'next/link';
 import { ListTodo, FolderKanban, Clock } from 'lucide-react';
 import type { AssignmentWithRefsDto } from '@workforce/shared';
 import { assignmentsApi } from '@/lib/api/assignments';
+import { toastError } from '@/stores/ui-store';
 import styles from './page.module.scss';
 
 export default function EmployeeDashboard() {
   const [assignments, setAssignments] = useState<AssignmentWithRefsDto[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     assignmentsApi
       .list()
       .then(setAssignments)
-      .catch((e: Error) => setError(e.message));
+      .catch((err: Error) => {
+        setLoadError(err.message);
+        toastError(err, 'Failed to load your tasks');
+      });
   }, []);
 
   const taskCount = assignments?.length ?? null;
@@ -27,11 +31,10 @@ export default function EmployeeDashboard() {
     <section>
       <h1 className={styles.heading}>My dashboard</h1>
       <p className={styles.subtitle}>
-        Tasks assigned to you. The optimizer (Phase 4) will populate assignments — until then this
-        view is read-only and may be empty.
+        Tasks assigned to you. Once your manager runs the optimizer your work will appear here.
       </p>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {loadError && <p className={styles.error}>{loadError}</p>}
 
       <div className={styles.cards}>
         <Stat icon={<ListTodo size={18} />} label="My tasks" value={taskCount} />
