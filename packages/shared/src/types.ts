@@ -79,3 +79,29 @@ export interface AssignmentWithRefsDto extends AssignmentDto {
   task: { id: string; name: string; projectId: string; projectName: string };
   user: { id: string; fullName: string; email: string };
 }
+
+export interface OptimizerAssignmentDto {
+  taskId: string;
+  userId: string;
+  plannedHours: number;
+}
+
+export interface OptimizerUnassignedDto {
+  taskId: string;
+  taskName: string;
+  reason: string;
+}
+
+export interface OptimizerMetricsDto {
+  avgLoad: number;
+  stdDevLoad: number;
+  overloadedCount: number;
+  executionTimeMs: number;
+}
+
+export interface OptimizerResultDto {
+  strategy: string;
+  assignments: OptimizerAssignmentDto[];
+  unassigned: OptimizerUnassignedDto[];
+  metrics: OptimizerMetricsDto;
+}

@@ -42,3 +42,6 @@ apps/api/prisma/migrations/dev.db*
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Tool state (e.g. created by `env -i` runs of gh CLI without XDG_STATE_HOME)
+.local/

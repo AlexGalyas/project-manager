@@ -16,10 +16,12 @@ const LINKS_BY_ROLE: Record<'ADMIN' | 'MANAGER' | 'EMPLOYEE', NavLinkDef[]> = {
     { href: '/admin', label: 'Dashboard' },
     { href: '/admin/users', label: 'Users' },
     { href: '/manager/projects', label: 'Projects' },
+    { href: '/manager/optimizer', label: 'Optimizer' },
   ],
   MANAGER: [
     { href: '/manager', label: 'Dashboard' },
     { href: '/manager/projects', label: 'Projects' },
+    { href: '/manager/optimizer', label: 'Optimizer' },
   ],
   EMPLOYEE: [
     { href: '/employee', label: 'Dashboard' },

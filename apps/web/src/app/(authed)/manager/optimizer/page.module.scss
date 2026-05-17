@@ -1,0 +1,284 @@
+@use '@/styles/variables' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+}
+
+.heading {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  margin: 0 0 $space-2 0;
+  font-size: $font-size-2xl;
+}
+
+.subtitle {
+  margin: 0 0 $space-4 0;
+  color: $color-text-muted;
+  max-width: 720px;
+}
+
+.subheading {
+  margin: 0 0 $space-3 0;
+  font-size: $font-size-xl;
+}
+
+.muted {
+  color: $color-text-muted;
+}
+
+.error {
+  background: $color-status-over;
+  padding: $space-2 $space-3;
+  border-radius: $radius-sm;
+  color: #842029;
+  font-size: $font-size-sm;
+}
+
+.controls {
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-4;
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.fieldset {
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-3 $space-4 $space-4 $space-4;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  legend {
+    padding: 0 $space-2;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.projectChoice {
+  display: flex;
+  gap: $space-4;
+  font-size: $font-size-sm;
+}
+
+.radio,
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  cursor: pointer;
+  font-size: $font-size-sm;
+}
+
+.projectList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-2;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.weights {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  font-size: $font-size-sm;
+}
+
+.weightsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-2;
+  flex-wrap: wrap;
+}
+
+.formula {
+  display: inline-block;
+  margin-left: $space-1;
+  background: $color-surface;
+  padding: 2px $space-2;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+}
+
+.linkBtn {
+  background: none;
+  border: none;
+  color: $color-accent;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  &:hover {
+    color: $color-accent-hover;
+    text-decoration: underline;
+  }
+}
+
+.weightInputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: $space-3;
+}
+
+.weight {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: $font-size-sm;
+
+  span {
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+  }
+
+  input {
+    padding: $space-2 $space-3;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    font-family: inherit;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.runBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-3 $space-5;
+  background: $color-accent;
+  color: #fff;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    background: $color-accent-hover;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.existingNote {
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: $space-3;
+}
+
+.metric {
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-3;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metricLabel {
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metricValue {
+  font-size: $font-size-lg;
+}
+
+.assignTable {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: $space-3;
+}
+
+.assignGroup {
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-3 $space-4;
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-2;
+    padding-bottom: $space-2;
+    border-bottom: 1px solid $color-border;
+    margin-bottom: $space-2;
+    font-size: $font-size-sm;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $space-1;
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      gap: $space-2;
+      font-size: $font-size-sm;
+    }
+  }
+}
+
+.unassignedList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  overflow: hidden;
+
+  li {
+    display: flex;
+    gap: $space-2;
+    align-items: center;
+    padding: $space-2 $space-4;
+    font-size: $font-size-sm;
+    border-bottom: 1px solid $color-border;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
