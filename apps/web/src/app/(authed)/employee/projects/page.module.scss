@@ -1,0 +1,57 @@
+@use '@/styles/variables' as *;
+
+.heading {
+  margin: 0 0 $space-2 0;
+  font-size: $font-size-2xl;
+}
+
+.subtitle {
+  margin: 0 0 $space-5 0;
+  color: $color-text-muted;
+  max-width: 640px;
+}
+
+.error {
+  background: $color-status-over;
+  padding: $space-2 $space-3;
+  border-radius: $radius-sm;
+  color: #842029;
+  font-size: $font-size-sm;
+}
+
+.tableWrap {
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+
+  th,
+  td {
+    text-align: left;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid $color-border;
+  }
+
+  thead th {
+    background: $color-surface;
+    font-weight: 600;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.name {
+  font-weight: 500;
+}

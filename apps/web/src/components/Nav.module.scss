@@ -1,0 +1,90 @@
+@use '@/styles/variables' as *;
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: $space-5;
+  padding: $space-3 $space-5;
+  background: $color-bg;
+  border-bottom: 1px solid $color-border;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-weight: 600;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: $color-accent;
+}
+
+.links {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: $space-2;
+  flex: 1;
+}
+
+.link,
+.linkActive {
+  padding: $space-2 $space-3;
+  border-radius: $radius-md;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-text;
+    background: $color-surface;
+  }
+}
+
+.linkActive {
+  background: $color-surface;
+  color: $color-text;
+  font-weight: 500;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  font-size: $font-size-sm;
+}
+
+.userName {
+  color: $color-text;
+}
+
+.role {
+  color: $color-text-muted;
+  text-transform: capitalize;
+}
+
+.signout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-bg;
+  color: $color-text-muted;
+  cursor: pointer;
+
+  &:hover {
+    color: $color-text;
+    border-color: $color-text-muted;
+  }
+}

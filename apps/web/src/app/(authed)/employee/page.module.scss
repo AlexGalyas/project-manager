@@ -1,0 +1,74 @@
+@use '@/styles/variables' as *;
+
+.heading {
+  margin: 0 0 $space-2 0;
+  font-size: $font-size-2xl;
+}
+
+.subtitle {
+  margin: 0 0 $space-5 0;
+  color: $color-text-muted;
+  max-width: 640px;
+}
+
+.error {
+  background: $color-status-over;
+  padding: $space-2 $space-3;
+  border-radius: $radius-sm;
+  color: #842029;
+  font-size: $font-size-sm;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $space-4;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-4;
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+}
+
+.cardIcon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-surface;
+  border-radius: $radius-md;
+  color: $color-accent;
+}
+
+.cardLabel {
+  display: block;
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cardValue {
+  font-size: $font-size-xl;
+}
+
+.cta {
+  margin-top: $space-5;
+}
+
+.ctaBtn {
+  display: inline-block;
+  padding: $space-2 $space-4;
+  background: $color-accent;
+  color: #fff;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  text-decoration: none;
+  &:hover { background: $color-accent-hover; color: #fff; text-decoration: none; }
+}

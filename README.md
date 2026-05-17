@@ -93,7 +93,7 @@ This project follows a phased bootstrap. The current state of each phase is summ
 
 - **Phase 1 — Skeleton** ✅ monorepo, both apps scaffolded, Docker Compose, AGENTS.md, 4 ADRs.
 - **Phase 2 — DB & Auth** ✅ Prisma schema + initial migration, deterministic seed (1 org, 18 users, 10 skills, 8 projects, 60 tasks), `/api/auth/login` and `/api/auth/me`, Passport-JWT strategy, `@CurrentUser` decorator, `RolesGuard`, error envelope filter, `/login` page + Zustand `authStore` with localStorage persistence.
-- **Phase 3 — Core CRUD** ☐ projects/tasks/skills/users endpoints and web pages.
+- **Phase 3 — Core CRUD** ✅ `/users`, `/skills`, `/projects` (full CRUD), `/projects/:id/tasks`, `/tasks/:id` (PATCH/DELETE), `/assignments` (list/delete). Global `JwtAuthGuard` with `@Public()` opt-out. Web pages: `/admin`, `/admin/users`, `/manager`, `/manager/projects`, `/manager/projects/[id]` (project + tasks CRUD with skills/deps), `/employee`, `/employee/tasks`, `/employee/projects`. Role-based `/` redirect.
 - **Phase 4 — Optimizer** ☐ `OptimizerStrategy` interface + `GreedyOptimizer` + `/manager/optimizer` page.
 - **Phase 5 — Workload views** ☐ `/workload`, `/workload/me`, heatmap, employee view.
 - **Phase 6 — Polish** ☐ empty states, error toasts, FR-01..FR-08 verification, screenshots.
