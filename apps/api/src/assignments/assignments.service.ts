@@ -17,7 +17,18 @@ export class AssignmentsService {
         ...(filter.projectId ? { task: { projectId: filter.projectId, project: { organizationId } } } : {}),
       },
       include: {
-        task: { include: { project: { select: { id: true, name: true } } } },
+        task: {
+          select: {
+            id: true,
+            name: true,
+            projectId: true,
+            deadline: true,
+            durationHours: true,
+            priority: true,
+            status: true,
+            project: { select: { id: true, name: true } },
+          },
+        },
         user: { select: { id: true, fullName: true, email: true } },
       },
       orderBy: [{ createdAt: 'desc' }],
@@ -36,6 +47,10 @@ export class AssignmentsService {
         name: a.task.name,
         projectId: a.task.projectId,
         projectName: a.task.project.name,
+        deadline: a.task.deadline ? a.task.deadline.toISOString() : null,
+        durationHours: a.task.durationHours,
+        priority: a.task.priority,
+        status: a.task.status,
       },
       user: { id: a.user.id, fullName: a.user.fullName, email: a.user.email },
     }));
