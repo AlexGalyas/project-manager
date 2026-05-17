@@ -11,13 +11,15 @@ import {
   getCurrentWorkWeek,
   type WeekDay,
 } from '@/lib/workload-week';
+import { toastError } from '@/stores/ui-store';
 import { EmptyState } from '@/components/EmptyState';
+import { Spinner } from '@/components/Spinner';
 import styles from './page.module.scss';
 
 export default function ManagerWorkloadPage() {
   const [entries, setEntries] = useState<WorkloadEntryDto[] | null>(null);
   const [assignments, setAssignments] = useState<AssignmentWithRefsDto[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Capture "now" once so the table doesn't flicker between renders.
   const week = useMemo<WeekDay[]>(() => getCurrentWorkWeek(), []);
@@ -28,7 +30,10 @@ export default function ManagerWorkloadPage() {
         setEntries(w);
         setAssignments(a);
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((err: Error) => {
+        setLoadError(err.message);
+        toastError(err, 'Failed to load workload');
+      });
   }, []);
 
   const bucketed = useMemo(() => {
@@ -46,11 +51,11 @@ export default function ManagerWorkloadPage() {
     return { total, capacity, overloaded, normal, under };
   }, [entries]);
 
-  if (error) {
+  if (loadError) {
     return (
       <section>
         <h1 className={styles.heading}>Team workload</h1>
-        <p className={styles.error}>{error}</p>
+        <p className={styles.error}>{loadError}</p>
       </section>
     );
   }
@@ -59,7 +64,7 @@ export default function ManagerWorkloadPage() {
     return (
       <section>
         <h1 className={styles.heading}>Team workload</h1>
-        <p className={styles.muted}>Loading…</p>
+        <Spinner label="Loading workload" />
       </section>
     );
   }

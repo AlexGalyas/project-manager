@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.scss';
+import { Toaster } from '@/components/Toaster';
 
 export const metadata: Metadata = {
   title: 'Workforce Optimizer',
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

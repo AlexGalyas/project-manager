@@ -3,18 +3,23 @@
 import { useEffect, useState } from 'react';
 import type { UserSummaryDto } from '@workforce/shared';
 import { usersApi } from '@/lib/api/users';
+import { toastError } from '@/stores/ui-store';
 import { EmptyState } from '@/components/EmptyState';
+import { Spinner } from '@/components/Spinner';
 import styles from './page.module.scss';
 
 export default function UsersListPage() {
   const [users, setUsers] = useState<UserSummaryDto[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     usersApi
       .list()
       .then(setUsers)
-      .catch((e: Error) => setError(e.message));
+      .catch((err: Error) => {
+        setLoadError(err.message);
+        toastError(err, 'Failed to load users');
+      });
   }, []);
 
   return (
@@ -24,7 +29,9 @@ export default function UsersListPage() {
         Read-only view of all members of this organization, their roles, and their skills.
       </p>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {loadError && <p className={styles.error}>{loadError}</p>}
+
+      {!users && !loadError && <Spinner />}
 
       {users && users.length === 0 && (
         <EmptyState title="No users" description="Seed the database to populate the demo." />
