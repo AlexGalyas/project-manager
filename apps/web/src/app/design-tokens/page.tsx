@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useThemeStore, type ThemePreference } from '@/stores/theme-store';
+import { ComponentsSection } from './components-section';
 import styles from './page.module.scss';
 
 const NEUTRAL_TOKENS = [
@@ -177,6 +178,8 @@ export default function DesignTokensPage() {
           ))}
         </ul>
       </section>
+
+      <ComponentsSection />
 
       <section className={styles.section}>
         <h2 className={styles.sectionHeading}>Sample composition</h2>

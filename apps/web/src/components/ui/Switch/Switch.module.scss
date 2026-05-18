@@ -1,0 +1,83 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.track {
+  position: relative;
+  display: inline-flex;
+  width: 36px;
+  height: 20px;
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+  transition:
+    background-color var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.input:checked + .thumb {
+  transform: translateX(16px);
+}
+
+.input:checked ~ .track,
+.input:checked + .thumb {
+  // Parent .track background changes via the input:checked sibling combinator
+  // attached on the wrapper.
+}
+
+.track:has(.input:checked) {
+  background: var(--color-accent);
+}
+
+.input:focus-visible + .thumb {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-normal) var(--ease-out);
+  pointer-events: none;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: var(--leading-tight);
+}
+
+.label {
+  color: var(--color-text);
+}
+
+.description {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
