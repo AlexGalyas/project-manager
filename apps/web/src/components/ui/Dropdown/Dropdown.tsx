@@ -38,6 +38,10 @@ export interface DropdownProps {
   align?: DropdownAlign;
   minWidth?: number;
   className?: string;
+  /** Optional content rendered above the items (e.g. user identity block). */
+  menuHeader?: React.ReactNode;
+  /** Optional content rendered below the items. */
+  menuFooter?: React.ReactNode;
 }
 
 const useIsomorphicLayoutEffect =
@@ -49,6 +53,8 @@ export function Dropdown({
   align = 'start',
   minWidth = 200,
   className,
+  menuHeader,
+  menuFooter,
 }: DropdownProps) {
   const triggerRef = useRef<HTMLElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -152,6 +158,7 @@ export function Dropdown({
               className={clsx(styles.menu, className)}
               style={{ top: coords.top, left: coords.left, minWidth }}
             >
+              {menuHeader && <div className={styles.menuHeader}>{menuHeader}</div>}
               {items.map((entry, i) =>
                 entry.kind === 'separator' ? (
                   <div key={i} className={styles.separator} role="separator" />
@@ -182,6 +189,7 @@ export function Dropdown({
                   </button>
                 ),
               )}
+              {menuFooter && <div className={styles.menuFooter}>{menuFooter}</div>}
             </div>,
             document.body,
           )
