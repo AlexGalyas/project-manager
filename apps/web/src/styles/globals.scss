@@ -1,3 +1,6 @@
+// Phase 8 design tokens come first so CSS custom properties are declared on
+// :root and [data-theme='dark'] before any rules that read them.
+@use 'tokens';
 @use 'variables' as *;
 
 *,
@@ -12,10 +15,18 @@ body {
   padding: 0;
   background: $color-bg;
   color: $color-text;
-  font-family: $font-family-base;
+  font-family: var(--font-sans);
   font-size: $font-size-base;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+// Smooth theme swap when [data-theme] flips on <html>. Limited to color-ish
+// properties so layout doesn't animate (per Phase 8 brief).
+body {
+  transition:
+    background-color var(--duration-normal) var(--ease-out),
+    color var(--duration-normal) var(--ease-out);
 }
 
 a {
@@ -35,5 +46,39 @@ button {
 
 code,
 pre {
-  font-family: $font-family-mono;
+  font-family: var(--font-mono);
+}
+
+// Focus-visible — only show the ring when keyboard navigating, not on click.
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+// Custom scrollbar — thin, neutral, theme-aware.
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-subtle);
 }

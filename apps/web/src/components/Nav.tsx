@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
+import { ThemeToggle } from './ThemeToggle';
 import styles from './Nav.module.scss';
 
 interface NavLinkDef {
@@ -63,6 +64,7 @@ export function Nav() {
         })}
       </ul>
       <div className={styles.user}>
+        <ThemeToggle />
         <span className={styles.userName}>
           {user.fullName} <span className={styles.role}>· {user.role.toLowerCase()}</span>
         </span>

@@ -1,0 +1,12 @@
+// Barrel for all design tokens. Import this once from globals.scss; each token
+// file declares CSS custom properties on :root (and [data-theme='dark']
+// overrides where applicable). SCSS variables and existing _variables.scss
+// are NOT removed yet — both systems coexist during the Phase 8 migration.
+
+@forward 'colors';
+@forward 'typography';
+@forward 'spacing';
+@forward 'shadows';
+@forward 'radii';
+@forward 'transitions';
+@forward 'z-index';
