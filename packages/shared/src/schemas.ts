@@ -66,3 +66,44 @@ export const AssignmentListQuerySchema = z.object({
   projectId: z.string().optional(),
 });
 export type AssignmentListQuery = z.infer<typeof AssignmentListQuerySchema>;
+
+export const RoleSchema = z.enum(['ADMIN', 'MANAGER', 'EMPLOYEE']);
+
+export const UserCreateInputSchema = z.object({
+  email: z.string().email(),
+  fullName: z.string().trim().min(2).max(100),
+  password: z.string().min(8).max(72),
+  role: RoleSchema,
+  maxHoursPerWeek: z.number().int().min(1).max(80).default(40),
+  skillIds: z.array(z.string()).default([]),
+});
+export type UserCreateInput = z.infer<typeof UserCreateInputSchema>;
+
+export const UserUpdateInputSchema = z
+  .object({
+    email: z.string().email(),
+    fullName: z.string().trim().min(2).max(100),
+    role: RoleSchema,
+    maxHoursPerWeek: z.number().int().min(1).max(80),
+    skillIds: z.array(z.string()).max(50),
+  })
+  .partial();
+export type UserUpdateInput = z.infer<typeof UserUpdateInputSchema>;
+
+export const UserPasswordChangeInputSchema = z.object({
+  password: z.string().min(8).max(72),
+});
+export type UserPasswordChangeInput = z.infer<typeof UserPasswordChangeInputSchema>;
+
+export const UserSetSkillsInputSchema = z.object({
+  skillIds: z.array(z.string()).max(50),
+});
+export type UserSetSkillsInput = z.infer<typeof UserSetSkillsInputSchema>;
+
+export const SkillCreateInputSchema = z.object({
+  name: z.string().trim().min(1).max(50),
+});
+export type SkillCreateInput = z.infer<typeof SkillCreateInputSchema>;
+
+export const SkillUpdateInputSchema = SkillCreateInputSchema;
+export type SkillUpdateInput = z.infer<typeof SkillUpdateInputSchema>;
