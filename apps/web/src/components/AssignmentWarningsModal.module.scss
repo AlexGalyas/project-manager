@@ -1,0 +1,90 @@
+@use '@/styles/variables' as *;
+
+.intro {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  margin: 0 0 $space-2 0;
+  padding: $space-2 $space-3;
+  background: rgba(245, 158, 11, 0.12);
+  border-radius: $radius-sm;
+  color: #b45309;
+  font-size: $font-size-sm;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-2;
+  padding: $space-2 $space-3;
+  background: $color-surface;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  line-height: 1.45;
+}
+
+.icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: $radius-sm;
+}
+
+.icon_MISSING_SKILLS {
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
+}
+
+.icon_OVERLOAD {
+  background: rgba(245, 158, 11, 0.18);
+  color: #b45309;
+}
+
+.icon_UNRESOLVED_DEPENDENCIES {
+  background: rgba(37, 99, 235, 0.12);
+  color: $color-accent;
+}
+
+.cancelBtn {
+  padding: $space-2 $space-4;
+  border: 1px solid $color-border;
+  background: $color-bg;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.confirmBtn {
+  padding: $space-2 $space-4;
+  background: #b45309;
+  color: #fff;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #92400e;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

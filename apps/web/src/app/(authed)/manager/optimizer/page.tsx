@@ -22,7 +22,7 @@ export default function OptimizerPage() {
   const [users, setUsers] = useState<UserSummaryDto[] | null>(null);
 
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[] | 'all'>('all');
-  const [replaceExisting, setReplaceExisting] = useState(true);
+  const [replaceExisting, setReplaceExisting] = useState(false);
   const [alpha, setAlpha] = useState('1');
   const [beta, setBeta] = useState('2');
   const [gamma, setGamma] = useState('0.5');
@@ -82,9 +82,13 @@ export default function OptimizerPage() {
       };
       const r = await optimizerApi.run(payload);
       setResult(r);
-      toastSuccess(
-        `Run done: ${r.assignments.length} assigned, ${r.unassigned.length} unassigned`,
-      );
+      if (r.assignments.length === 0 && r.unassigned.length === 0) {
+        toastSuccess('All tasks are already assigned. Nothing to optimize.');
+      } else {
+        toastSuccess(
+          `Run done: +${r.assignments.length} new, ${r.preservedCount} preserved (${r.lockedCount} locked), ${r.unassigned.length} unassigned`,
+        );
+      }
       // Refresh existing assignments to reflect persisted data.
       const a = await assignmentsApi.list();
       setExistingAssignments(a);
@@ -128,8 +132,8 @@ export default function OptimizerPage() {
           <Sparkles size={20} /> Optimizer
         </h1>
         <p className={styles.subtitle}>
-          Run the greedy assignment strategy across one or more projects. Existing assignments for
-          the selected tasks are wiped first when "Replace existing" is on.
+          Run the greedy assignment strategy across one or more projects. Manual and locked
+          assignments are always preserved.
         </p>
       </header>
 
@@ -179,14 +183,32 @@ export default function OptimizerPage() {
         </fieldset>
 
         <fieldset className={styles.fieldset}>
-          <legend>Options</legend>
-          <label className={styles.check}>
+          <legend>Mode</legend>
+          <label className={styles.radio}>
             <input
-              type="checkbox"
-              checked={replaceExisting}
-              onChange={(e) => setReplaceExisting(e.target.checked)}
+              type="radio"
+              checked={!replaceExisting}
+              onChange={() => setReplaceExisting(false)}
             />
-            Replace existing assignments for these tasks
+            <span>
+              <strong>Schedule only unassigned tasks</strong>
+              <em className={styles.radioHint}>
+                Existing assignments are left untouched.
+              </em>
+            </span>
+          </label>
+          <label className={styles.radio}>
+            <input
+              type="radio"
+              checked={replaceExisting}
+              onChange={() => setReplaceExisting(true)}
+            />
+            <span>
+              <strong>Re-optimize everything</strong>
+              <em className={styles.radioHint}>
+                Removes prior auto assignments only. Locked + manual assignments are preserved.
+              </em>
+            </span>
           </label>
 
           <div className={styles.weights}>
@@ -253,13 +275,24 @@ export default function OptimizerPage() {
         <>
           <section className={styles.summary}>
             <Metric label="Strategy" value={result.strategy} />
-            <Metric label="Assigned" value={result.assignments.length} />
+            <Metric label="New assignments" value={result.assignments.length} />
+            <Metric
+              label="Preserved"
+              value={`${result.preservedCount}${result.lockedCount > 0 ? ` (${result.lockedCount} locked)` : ''}`}
+            />
+            <Metric label="Removed" value={result.removedCount} />
             <Metric label="Unassigned" value={result.unassigned.length} />
             <Metric label="Avg load (h)" value={result.metrics.avgLoad} />
             <Metric label="Stddev load" value={result.metrics.stdDevLoad} />
             <Metric label="Overloaded" value={result.metrics.overloadedCount} />
             <Metric label="Time (ms)" value={result.metrics.executionTimeMs} />
           </section>
+
+          {result.assignments.length === 0 && result.unassigned.length === 0 && (
+            <p className={styles.calmNote}>
+              All in-scope tasks are already assigned. Nothing left for the optimizer to schedule.
+            </p>
+          )}
 
           <section>
             <h2 className={styles.subheading}>Assignments by employee</h2>

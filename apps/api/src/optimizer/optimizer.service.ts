@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Role, TaskStatus } from '@prisma/client';
+import { AssignmentSource, Role, TaskStatus } from '@prisma/client';
 import type { OptimizerResultDto, OptimizerRunInput } from '@workforce/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { GreedyOptimizer } from './strategies/greedy-optimizer';
@@ -21,73 +21,86 @@ export class OptimizerService {
   ) {}
 
   private pickStrategy(): OptimizerStrategy {
-    // Single MVP strategy. A future ADR may introduce a registry; for now
-    // GreedyOptimizer is the only choice. Adding more strategies = wire them
-    // into OptimizerModule and switch here on a body-driven field.
     return this.greedy;
   }
 
+  /**
+   * Phase 7.5 contract:
+   * - Locked + manual assignments are *sacred*. The optimizer never deletes or
+   *   modifies them, and their `plannedHours` are pre-loaded into the
+   *   employee's load so the optimizer respects the hours they consume.
+   * - `replaceExisting: true` only deletes assignments where
+   *   `source = OPTIMIZER AND lockedByManager = false` within the scope.
+   * - Tasks that already have a non-deleted assignment after the optional
+   *   cleanup are skipped (not subject to optimization).
+   * - New assignments are persisted with `source: OPTIMIZER, lockedByManager: false`.
+   */
   async run(organizationId: string, input: OptimizerRunInput): Promise<OptimizerResultDto> {
     const strategy = this.pickStrategy();
     const weights = { ...DEFAULT_WEIGHTS, ...(input.weights ?? {}) };
+    const replaceExisting = input.replaceExisting ?? false;
 
-    // Pull the candidate tasks (TODO only — DONE/IN_PROGRESS are out of scope
-    // for fresh planning) scoped by org, filtered by projectIds if given.
-    const taskWhere: {
-      project: { organizationId: string; id?: { in: string[] } };
-      status: TaskStatus;
-    } = {
-      project: { organizationId },
-      status: TaskStatus.TODO,
-    };
-    if (input.projectIds && input.projectIds.length > 0) {
-      taskWhere.project.id = { in: input.projectIds };
-    }
+    const projectScopeFilter =
+      input.projectIds && input.projectIds.length > 0
+        ? { id: { in: input.projectIds } }
+        : {};
 
-    const candidateTasks = await this.prisma.task.findMany({
-      where: taskWhere,
+    // 1. Tasks the optimizer might place: TODO, scoped, in org.
+    const tasksInScope = await this.prisma.task.findMany({
+      where: {
+        status: TaskStatus.TODO,
+        project: { organizationId, ...projectScopeFilter },
+      },
       include: {
         skills: { select: { skillId: true } },
         dependsOn: { select: { dependsOnTaskId: true } },
+        assignment: true,
       },
     });
+    const scopedTaskIds = tasksInScope.map((t) => t.id);
+
+    let removedCount = 0;
+
+    // 2. Optional cleanup of unlocked OPTIMIZER assignments within scope.
+    if (replaceExisting && scopedTaskIds.length > 0) {
+      const result = await this.prisma.assignment.deleteMany({
+        where: {
+          taskId: { in: scopedTaskIds },
+          source: AssignmentSource.OPTIMIZER,
+          lockedByManager: false,
+        },
+      });
+      removedCount = result.count;
+    }
+
+    // 3. Re-read assignments AFTER any cleanup so candidate filtering and
+    //    initial-load calculation see the surviving rows.
+    const survivingAssignments = await this.prisma.assignment.findMany({
+      where: { task: { project: { organizationId } } },
+      select: {
+        taskId: true,
+        userId: true,
+        plannedHours: true,
+        source: true,
+        lockedByManager: true,
+      },
+    });
+
+    // 4. Candidate tasks = scoped tasks WITHOUT a surviving assignment.
+    const survivingTaskIds = new Set(survivingAssignments.map((a) => a.taskId));
+    const candidateTasks = tasksInScope.filter((t) => !survivingTaskIds.has(t.id));
+
+    // 5. Initial per-user load = sum of all surviving assignments
+    //    (manual + locked + any optimizer rows that weren't cleaned up).
+    const loadByUser = new Map<string, number>();
+    for (const a of survivingAssignments) {
+      loadByUser.set(a.userId, (loadByUser.get(a.userId) ?? 0) + a.plannedHours);
+    }
 
     const employees = await this.prisma.user.findMany({
       where: { organizationId, role: Role.EMPLOYEE },
       include: { skills: { select: { skillId: true } } },
     });
-
-    // Existing assignments matter for two reasons:
-    //  (a) they prefill load[] so we don't overcommit existing planning.
-    //  (b) they let a dep on an IN_PROGRESS task count as satisfied.
-    const existing = await this.prisma.assignment.findMany({
-      where: { task: { project: { organizationId } } },
-      select: { taskId: true, userId: true, plannedHours: true },
-    });
-
-    if (input.replaceExisting) {
-      // Wipe assignments for tasks within the planning scope so the optimizer
-      // gets a clean slate. (Assignments for other projects or for
-      // IN_PROGRESS/DONE tasks are left intact.)
-      const taskIdsInScope = candidateTasks.map((t) => t.id);
-      if (taskIdsInScope.length > 0) {
-        await this.prisma.assignment.deleteMany({
-          where: { taskId: { in: taskIdsInScope } },
-        });
-      }
-    }
-
-    // Recompute initial load with the (possibly trimmed) set of existing
-    // assignments.
-    const remainingExisting = input.replaceExisting
-      ? existing.filter((e) => !candidateTasks.some((t) => t.id === e.taskId))
-      : existing;
-
-    const loadByUser = new Map<string, number>();
-    for (const a of remainingExisting) {
-      loadByUser.set(a.userId, (loadByUser.get(a.userId) ?? 0) + a.plannedHours);
-    }
-
     const employeesInput: OptimizerEmployeeInput[] = employees.map((u) => ({
       id: u.id,
       maxHoursPerWeek: u.maxHoursPerWeek,
@@ -106,13 +119,18 @@ export class OptimizerService {
       dependsOnIds: t.dependsOn.map((d) => d.dependsOnTaskId),
     }));
 
-    const preAssignedTaskIds = new Set(remainingExisting.map((e) => e.taskId));
+    const preAssignedTaskIds = new Set(survivingAssignments.map((a) => a.taskId));
     const existingAssignmentByTask = new Map(
-      remainingExisting.map((e) => [e.taskId, e.userId] as const),
+      survivingAssignments.map((a) => [a.taskId, a.userId] as const),
     );
 
+    const lockedCount = survivingAssignments.filter((a) => a.lockedByManager).length;
+    const preservedCount = survivingAssignments.length;
+
     this.logger.log(
-      `running ${strategy.name} optimizer on org=${organizationId}: ${tasksInput.length} tasks, ${employeesInput.length} employees, replaceExisting=${input.replaceExisting}`,
+      `running ${strategy.name} on org=${organizationId}: ` +
+        `${candidateTasks.length} candidate tasks, ${employeesInput.length} employees, ` +
+        `replaceExisting=${replaceExisting}, removed=${removedCount}, preserved=${preservedCount} (locked=${lockedCount})`,
     );
 
     const result = await strategy.optimize({
@@ -124,20 +142,19 @@ export class OptimizerService {
       now: new Date(),
     });
 
-    // Persist transactionally.
+    // 6. Persist new assignments. Since candidateTasks had no surviving
+    //    assignment, plain `create` works (no upsert needed) — there is no
+    //    row to update.
     if (result.assignments.length > 0) {
       await this.prisma.$transaction(
         result.assignments.map((a) =>
-          this.prisma.assignment.upsert({
-            where: { taskId: a.taskId },
-            create: {
+          this.prisma.assignment.create({
+            data: {
               taskId: a.taskId,
               userId: a.userId,
               plannedHours: a.plannedHours,
-            },
-            update: {
-              userId: a.userId,
-              plannedHours: a.plannedHours,
+              source: AssignmentSource.OPTIMIZER,
+              lockedByManager: false,
             },
           }),
         ),
@@ -148,6 +165,9 @@ export class OptimizerService {
       strategy: strategy.name,
       assignments: result.assignments,
       unassigned: result.unassigned,
+      preservedCount,
+      lockedCount,
+      removedCount,
       metrics: result.metrics,
     };
   }
