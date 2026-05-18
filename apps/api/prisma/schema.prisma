@@ -23,6 +23,11 @@ enum TaskStatus {
   DONE
 }
 
+enum AssignmentSource {
+  MANUAL
+  OPTIMIZER
+}
+
 model Organization {
   id        String   @id @default(cuid())
   name      String
@@ -134,16 +139,21 @@ model TaskDependency {
 }
 
 model Assignment {
-  id            String   @id @default(cuid())
-  taskId        String   @unique
-  userId        String
-  plannedHours  Float
-  plannedStart  DateTime?
-  plannedEnd    DateTime?
-  createdAt     DateTime @default(now())
+  id              String           @id @default(cuid())
+  taskId          String           @unique
+  userId          String
+  plannedHours    Float
+  plannedStart    DateTime?
+  plannedEnd      DateTime?
+  source          AssignmentSource @default(MANUAL)
+  lockedByManager Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now()) @updatedAt
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([lockedByManager])
+  @@index([source])
 }

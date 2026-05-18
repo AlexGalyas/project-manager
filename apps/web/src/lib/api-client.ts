@@ -52,7 +52,7 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
     }
     const code = body?.error?.code ?? 'HTTP_ERROR';
     const message = body?.error?.message ?? res.statusText ?? 'Request failed';
-    throw new ApiError(res.status, code, message, body?.error);
+    throw new ApiError(res.status, code, message, body?.error?.details);
   }
 
   if (res.status === 204) return undefined as T;

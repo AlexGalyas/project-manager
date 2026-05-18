@@ -1,6 +1,11 @@
 export type Role = 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 export type WorkloadStatus = 'under' | 'normal' | 'over';
+export type AssignmentSource = 'MANUAL' | 'OPTIMIZER';
+export type AssignmentWarningCode =
+  | 'MISSING_SKILLS'
+  | 'OVERLOAD'
+  | 'UNRESOLVED_DEPENDENCIES';
 
 export interface ApiErrorBody {
   error: {
@@ -77,7 +82,10 @@ export interface AssignmentDto {
   plannedHours: number;
   plannedStart: string | null;
   plannedEnd: string | null;
+  source: AssignmentSource;
+  lockedByManager: boolean;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface AssignmentWithRefsDto extends AssignmentDto {
@@ -92,6 +100,17 @@ export interface AssignmentWithRefsDto extends AssignmentDto {
     status: TaskStatus;
   };
   user: { id: string; fullName: string; email: string };
+}
+
+export interface AssignmentWarningDto {
+  code: AssignmentWarningCode;
+  message: string;
+  details?: unknown;
+}
+
+export interface AssignmentMutationResultDto {
+  assignment: AssignmentDto;
+  warnings: AssignmentWarningDto[];
 }
 
 export interface WorkloadEntryDto {
@@ -125,5 +144,11 @@ export interface OptimizerResultDto {
   strategy: string;
   assignments: OptimizerAssignmentDto[];
   unassigned: OptimizerUnassignedDto[];
+  /** Existing assignments left untouched (manual or locked). */
+  preservedCount: number;
+  /** Locked count (subset of preservedCount; for UI emphasis). */
+  lockedCount: number;
+  /** OPTIMIZER-source rows deleted by replaceExisting=true. 0 when replaceExisting=false. */
+  removedCount: number;
   metrics: OptimizerMetricsDto;
 }

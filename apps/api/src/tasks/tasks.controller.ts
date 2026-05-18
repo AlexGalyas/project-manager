@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   Param,
   Patch,
@@ -13,10 +14,19 @@ import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserContext } from '../auth/jwt-payload.interface';
 import { TasksService } from './tasks.service';
+import { AssignmentsService } from '../assignments/assignments.service';
 
 @Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasks: TasksService) {}
+  constructor(
+    private readonly tasks: TasksService,
+    private readonly assignments: AssignmentsService,
+  ) {}
+
+  @Get(':id/assignment')
+  getAssignment(@CurrentUser() user: CurrentUserContext, @Param('id') id: string) {
+    return this.assignments.getByTaskId(user.organizationId, id);
+  }
 
   @Patch(':id')
   @Roles(Role.ADMIN, Role.MANAGER)

@@ -125,6 +125,38 @@ When extending: add new business rules as private helpers in the service, not in
 
 See [ADR-0005](docs/adr/0005-user-skill-admin-routes.md) for the design of the user/skill admin endpoints, including the dual `PATCH /users/:id` + `PUT /users/:id/skills` shape.
 
+### Assignment Lifecycle (Phase 7.5)
+
+Every `Assignment` row carries two extra columns introduced in Phase 7.5:
+
+- **`source`** — `MANUAL` (a manager set it via the assignee dropdown / `POST /assignments` / `PATCH /assignments/:id`) or `OPTIMIZER` (created by `POST /optimizer/run`). The default for new manual rows is `MANUAL`; the optimizer always writes `OPTIMIZER`.
+- **`lockedByManager`** — boolean. When `true`, the optimizer **must not** modify or delete this row on any subsequent run. New manual rows default to `true`. Optimizer-created rows default to `false`.
+
+### Optimizer's contract with these flags
+
+- The initial per-employee load passed into the strategy is the sum of `plannedHours` across **all** surviving assignments (manual + locked + any optimizer rows that aren't being cleaned up). The strategy therefore never proposes work that would push a user past their cap, *including* hours the manager has locked in.
+- `replaceExisting: true` deletes only rows where `source = OPTIMIZER AND lockedByManager = false` within the scope. Manual and locked rows are sacred.
+- After cleanup the optimizer skips any task that already has a surviving assignment.
+- New assignments produced by the optimizer are persisted via plain `create` with `source: OPTIMIZER, lockedByManager: false`. They can be locked later by the manager via `POST /assignments/:id/lock`.
+
+### Force + warnings (422 envelope)
+
+`POST /assignments` and `PATCH /assignments/:id` run three validators (`checkSkills`, `checkOverload`, `checkDependencies`). When any warning fires AND `force: false` (the default), the response is **422** with:
+
+```json
+{ "error": {
+    "code": "ASSIGNMENT_WARNINGS",
+    "message": "Assignment has unresolved issues; resend with force=true to proceed.",
+    "details": { "warnings": [ { "code": "MISSING_SKILLS", "message": "...", "details": ... } ] }
+} }
+```
+
+The frontend reads `details.warnings`, displays them in `<AssignmentWarningsModal>`, and on "Assign anyway" replays the same payload with `force: true`. Forced calls succeed and return the same `warnings` array in the success body so the manager can audit what they overrode.
+
+Adding a new warning type: add it to `AssignmentWarningCode` in `packages/shared`, write a `check…` helper in `apps/api/src/assignments/validators`, call it inside `AssignmentsService.collectWarnings`, add an icon entry to `AssignmentWarningsModal`. No other plumbing required — the 422 envelope is generic.
+
+See [ADR-0006](docs/adr/0006-assignment-source-and-locking.md) for the model rationale.
+
 ## 7. Caveats
 
 - **JWT in `localStorage`** is acceptable for this MVP demo, NOT for production. XSS leaks the token. Mitigations would be: httpOnly cookies + CSRF protection, or a session-cookie + refresh-token rotation. See `docs/adr/0004-jwt-in-localstorage.md`.
@@ -139,3 +171,4 @@ See [ADR-0005](docs/adr/0005-user-skill-admin-routes.md) for the design of the u
 - [0003 — Greedy algorithm with strategy pattern](docs/adr/0003-greedy-strategy-pattern.md)
 - [0004 — JWT in localStorage for MVP](docs/adr/0004-jwt-in-localstorage.md)
 - [0005 — User & Skill admin endpoints — shape and protections](docs/adr/0005-user-skill-admin-routes.md)
+- [0006 — Assignment source and manager-locking model](docs/adr/0006-assignment-source-and-locking.md)

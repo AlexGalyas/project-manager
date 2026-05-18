@@ -1,0 +1,292 @@
+@use '@/styles/variables' as *;
+
+.cell {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  flex-wrap: wrap;
+  font-size: $font-size-sm;
+}
+
+.assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: $radius-sm;
+  font: inherit;
+  cursor: pointer;
+  color: $color-text;
+
+  &:hover:not(:disabled) {
+    border-color: $color-border;
+    background: $color-surface;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.12);
+  color: $color-accent;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.name {
+  white-space: nowrap;
+}
+
+.lockBtn,
+.unassignBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid $color-border;
+  background: $color-bg;
+  border-radius: $radius-sm;
+  color: $color-text-muted;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover:not(:disabled) {
+    color: $color-text;
+    border-color: $color-text-muted;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.unassignBtn:hover:not(:disabled) {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.sourceBadge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: $radius-sm;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.source_MANUAL {
+  background: $color-surface;
+  color: $color-text-muted;
+}
+
+.source_OPTIMIZER {
+  background: rgba(37, 99, 235, 0.1);
+  color: $color-accent;
+}
+
+.hoursInput {
+  width: 50px;
+  padding: 2px 6px;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-family: inherit;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+
+  &:focus {
+    outline: none;
+    border-color: $color-accent;
+  }
+
+  &:disabled {
+    background: $color-surface;
+  }
+}
+
+.hoursSuffix {
+  margin-left: -2px;
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+}
+
+.assignTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px dashed $color-border;
+  background: transparent;
+  border-radius: $radius-md;
+  color: $color-text-muted;
+  font: inherit;
+  font-size: $font-size-xs;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: $color-accent;
+    border-color: $color-accent;
+    background: rgba(37, 99, 235, 0.05);
+  }
+}
+
+// Picker modal contents
+.search {
+  width: 100%;
+  padding: $space-2 $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: $color-accent;
+  }
+}
+
+.requiredSkills {
+  margin: $space-3 0 $space-2 0;
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+}
+
+.empList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.empEmpty {
+  padding: $space-3;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+  text-align: center;
+}
+
+.empRow {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  width: 100%;
+  padding: $space-2 $space-3;
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  font: inherit;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover:not(:disabled) {
+    border-color: $color-accent;
+    background: rgba(37, 99, 235, 0.04);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.empCurrent {
+  border-color: $color-accent !important;
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.empAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.12);
+  color: $color-accent;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.empMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.empName {
+  font-weight: 500;
+}
+
+.currentTag {
+  margin-left: 4px;
+  color: $color-accent;
+  font-size: $font-size-xs;
+  font-weight: 400;
+}
+
+.empMeta {
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+}
+
+.empMissing {
+  color: #b91c1c;
+}
+
+.modalCancel,
+.modalDanger {
+  padding: $space-2 $space-4;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.modalCancel {
+  border: 1px solid $color-border;
+  background: $color-bg;
+}
+
+.modalDanger {
+  background: #b91c1c;
+  color: #fff;
+  border: none;
+
+  &:hover:not(:disabled) {
+    background: #991b1b;
+  }
+}
+
+.muted {
+  margin: 0;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}

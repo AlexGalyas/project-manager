@@ -9,14 +9,19 @@ import type {
   SkillDto,
   TaskDto,
   TaskStatus,
+  UserSummaryDto,
+  WorkloadEntryDto,
 } from '@workforce/shared';
 import { projectsApi } from '@/lib/api/projects';
 import { tasksApi } from '@/lib/api/tasks';
 import { skillsApi } from '@/lib/api/skills';
+import { usersApi } from '@/lib/api/users';
+import { workloadApi } from '@/lib/api/workload';
 import { useAuthStore } from '@/stores/auth-store';
 import { toastError, toastSuccess } from '@/stores/ui-store';
 import { EmptyState } from '@/components/EmptyState';
 import { Spinner } from '@/components/Spinner';
+import { AssigneeCell } from '@/components/AssigneeCell';
 import styles from './page.module.scss';
 
 const STATUS_OPTIONS: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE'];
@@ -30,6 +35,8 @@ export default function ProjectDetailPage() {
 
   const [project, setProject] = useState<ProjectWithTasksDto | null>(null);
   const [skills, setSkills] = useState<SkillDto[]>([]);
+  const [employees, setEmployees] = useState<UserSummaryDto[]>([]);
+  const [workload, setWorkload] = useState<WorkloadEntryDto[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
@@ -47,13 +54,24 @@ export default function ProjectDetailPage() {
     }
   }, [projectId]);
 
+  const refreshAssignmentContext = useCallback(async () => {
+    try {
+      const [users, wl] = await Promise.all([usersApi.list(), workloadApi.list()]);
+      setEmployees(users.filter((u) => u.role === 'EMPLOYEE'));
+      setWorkload(wl);
+    } catch (err) {
+      toastError(err, 'Failed to refresh assignment context');
+    }
+  }, []);
+
   useEffect(() => {
     refresh();
     skillsApi
       .list()
       .then(setSkills)
       .catch((err) => toastError(err, 'Failed to load skills'));
-  }, [refresh]);
+    refreshAssignmentContext();
+  }, [refresh, refreshAssignmentContext]);
 
   async function handleDeleteProject() {
     if (!project) return;
@@ -188,6 +206,7 @@ export default function ProjectDetailPage() {
                 <th>Skills</th>
                 <th>Deps</th>
                 <th>Deadline</th>
+                <th>Assignee</th>
                 <th aria-label="Actions" />
               </tr>
             </thead>
@@ -195,7 +214,7 @@ export default function ProjectDetailPage() {
               {project.tasks.map((t) =>
                 editingTaskId === t.id ? (
                   <tr key={t.id}>
-                    <td colSpan={8}>
+                    <td colSpan={9}>
                       <TaskEditForm
                         task={t}
                         skills={skills}
@@ -237,6 +256,17 @@ export default function ProjectDetailPage() {
                     <td>{t.dependsOnIds.length || <span className={styles.muted}>—</span>}</td>
                     <td className={styles.muted}>
                       {t.deadline ? new Date(t.deadline).toLocaleDateString() : '—'}
+                    </td>
+                    <td>
+                      <AssigneeCell
+                        task={t}
+                        employees={employees}
+                        workload={workload}
+                        onChanged={async () => {
+                          await refresh();
+                          await refreshAssignmentContext();
+                        }}
+                      />
                     </td>
                     <td className={styles.actions}>
                       <button

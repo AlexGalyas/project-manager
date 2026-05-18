@@ -67,6 +67,29 @@ export const AssignmentListQuerySchema = z.object({
 });
 export type AssignmentListQuery = z.infer<typeof AssignmentListQuerySchema>;
 
+export const AssignmentSourceSchema = z.enum(['MANUAL', 'OPTIMIZER']);
+
+export const AssignmentCreateInputSchema = z.object({
+  taskId: z.string().min(1),
+  userId: z.string().min(1),
+  plannedHours: z.number().positive().max(1000).optional(),
+  plannedStart: z.string().datetime().optional(),
+  plannedEnd: z.string().datetime().optional(),
+  force: z.boolean().optional().default(false),
+});
+export type AssignmentCreateInput = z.infer<typeof AssignmentCreateInputSchema>;
+
+export const AssignmentUpdateInputSchema = z
+  .object({
+    userId: z.string().min(1),
+    plannedHours: z.number().positive().max(1000),
+    plannedStart: z.string().datetime().nullable(),
+    plannedEnd: z.string().datetime().nullable(),
+    force: z.boolean(),
+  })
+  .partial();
+export type AssignmentUpdateInput = z.infer<typeof AssignmentUpdateInputSchema>;
+
 export const RoleSchema = z.enum(['ADMIN', 'MANAGER', 'EMPLOYEE']);
 
 export const UserCreateInputSchema = z.object({

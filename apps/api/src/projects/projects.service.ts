@@ -36,7 +36,10 @@ function serializeTask(task: TaskWithRelations): TaskDto {
           plannedHours: task.assignment.plannedHours,
           plannedStart: task.assignment.plannedStart ? task.assignment.plannedStart.toISOString() : null,
           plannedEnd: task.assignment.plannedEnd ? task.assignment.plannedEnd.toISOString() : null,
+          source: task.assignment.source,
+          lockedByManager: task.assignment.lockedByManager,
           createdAt: task.assignment.createdAt.toISOString(),
+          updatedAt: task.assignment.updatedAt.toISOString(),
         }
       : null,
   };
