@@ -1,7 +1,16 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Play, RotateCcw, Sparkles } from 'lucide-react';
+import {
+  Calculator,
+  CheckCircle2,
+  ListChecks,
+  Lock,
+  Play,
+  RotateCcw,
+  Sparkles,
+  TriangleAlert,
+} from 'lucide-react';
 import type {
   AssignmentWithRefsDto,
   OptimizerResultDto,
@@ -13,8 +22,18 @@ import { usersApi } from '@/lib/api/users';
 import { assignmentsApi } from '@/lib/api/assignments';
 import { optimizerApi } from '@/lib/api/optimizer';
 import { toastError, toastSuccess } from '@/stores/ui-store';
-import { EmptyState } from '@/components/EmptyState';
-import { Spinner } from '@/components/Spinner';
+import { PageContainer } from '@/components/layout';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  Checkbox,
+  EmptyState,
+  Input,
+  SectionHeader,
+} from '@/components/ui';
+import { StatCard } from '@/components/dashboard';
 import styles from './page.module.scss';
 
 export default function OptimizerPage() {
@@ -89,7 +108,6 @@ export default function OptimizerPage() {
           `Run done: +${r.assignments.length} new, ${r.preservedCount} preserved (${r.lockedCount} locked), ${r.unassigned.length} unassigned`,
         );
       }
-      // Refresh existing assignments to reflect persisted data.
       const a = await assignmentsApi.list();
       setExistingAssignments(a);
     } catch (err) {
@@ -126,143 +144,142 @@ export default function OptimizerPage() {
   }, [result, userById]);
 
   return (
-    <section className={styles.page}>
-      <header>
-        <h1 className={styles.heading}>
-          <Sparkles size={20} /> Optimizer
-        </h1>
-        <p className={styles.subtitle}>
-          Run the greedy assignment strategy across one or more projects. Manual and locked
-          assignments are always preserved.
-        </p>
-      </header>
-
+    <PageContainer
+      title="Optimizer"
+      description="Run the greedy strategy across one or more projects. Manual and locked assignments are always preserved."
+    >
       <form className={styles.controls} onSubmit={handleRun}>
-        <fieldset className={styles.fieldset}>
-          <legend>Projects to include</legend>
-          <div className={styles.projectChoice}>
-            <label className={styles.radio}>
-              <input
-                type="radio"
-                checked={selectedProjectIds === 'all'}
-                onChange={() => setSelectedProjectIds('all')}
-              />
-              All projects
-            </label>
-            <label className={styles.radio}>
-              <input
-                type="radio"
-                checked={selectedProjectIds !== 'all'}
-                onChange={() => setSelectedProjectIds([])}
-              />
-              Selected projects
-            </label>
+        <Card padding="lg">
+          <SectionHeader
+            as="h3"
+            title="1. Choose projects"
+            description="The optimizer only schedules unassigned TODO tasks in the selected scope."
+          />
+          <div className={styles.projectScope}>
+            <Checkbox
+              label="All projects"
+              checked={selectedProjectIds === 'all'}
+              onChange={() => setSelectedProjectIds('all')}
+            />
+            <Checkbox
+              label="Selected projects only"
+              checked={selectedProjectIds !== 'all'}
+              onChange={() => setSelectedProjectIds([])}
+            />
           </div>
           {selectedProjectIds !== 'all' && (
             <ul className={styles.projectList}>
               {projects?.map((p) => (
                 <li key={p.id}>
-                  <label className={styles.check}>
-                    <input
-                      type="checkbox"
-                      checked={selectedProjectIds.includes(p.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedProjectIds([...(selectedProjectIds as string[]), p.id]);
-                        } else {
-                          setSelectedProjectIds((selectedProjectIds as string[]).filter((x) => x !== p.id));
-                        }
-                      }}
-                    />
-                    {p.name} <span className={styles.muted}>({p.taskCount} tasks · P{p.priority})</span>
-                  </label>
+                  <Checkbox
+                    label={
+                      <span className={styles.projectLabel}>
+                        <span>{p.name}</span>
+                        <span className={styles.projectMeta}>
+                          {p.taskCount} task{p.taskCount === 1 ? '' : 's'} · P{p.priority}
+                        </span>
+                      </span>
+                    }
+                    checked={selectedProjectIds.includes(p.id)}
+                    onChange={(e) => {
+                      const set = new Set(selectedProjectIds as string[]);
+                      if (e.target.checked) set.add(p.id);
+                      else set.delete(p.id);
+                      setSelectedProjectIds(Array.from(set));
+                    }}
+                  />
                 </li>
               ))}
             </ul>
           )}
-        </fieldset>
+        </Card>
 
-        <fieldset className={styles.fieldset}>
-          <legend>Mode</legend>
-          <label className={styles.radio}>
-            <input
-              type="radio"
+        <Card padding="lg">
+          <SectionHeader as="h3" title="2. Choose mode" />
+          <div className={styles.modeOptions}>
+            <Checkbox
+              label={
+                <span className={styles.modeLabel}>
+                  <strong>Schedule only unassigned tasks</strong>
+                  <span className={styles.modeHint}>Existing assignments stay untouched.</span>
+                </span>
+              }
               checked={!replaceExisting}
               onChange={() => setReplaceExisting(false)}
             />
-            <span>
-              <strong>Schedule only unassigned tasks</strong>
-              <em className={styles.radioHint}>
-                Existing assignments are left untouched.
-              </em>
-            </span>
-          </label>
-          <label className={styles.radio}>
-            <input
-              type="radio"
+            <Checkbox
+              label={
+                <span className={styles.modeLabel}>
+                  <strong>Re-optimize everything</strong>
+                  <span className={styles.modeHint}>
+                    Removes prior auto assignments only. Locked + manual are preserved.
+                  </span>
+                </span>
+              }
               checked={replaceExisting}
               onChange={() => setReplaceExisting(true)}
             />
-            <span>
-              <strong>Re-optimize everything</strong>
-              <em className={styles.radioHint}>
-                Removes prior auto assignments only. Locked + manual assignments are preserved.
-              </em>
-            </span>
-          </label>
+          </div>
+        </Card>
 
-          <div className={styles.weights}>
-            <div className={styles.weightsHeader}>
-              <span>
-                Weights for the composite score:
+        <Card padding="lg">
+          <SectionHeader
+            as="h3"
+            title="3. Tune the scoring weights"
+            description={
+              <>
                 <code className={styles.formula}>
                   α·priority + β·(1 / max(1, daysUntilDeadline)) + γ·dependentsCount
                 </code>
-              </span>
-              <button type="button" className={styles.linkBtn} onClick={resetWeights}>
-                <RotateCcw size={12} /> Reset to defaults
-              </button>
-            </div>
-            <div className={styles.weightInputs}>
-              <label className={styles.weight}>
-                <span>α (priority)</span>
-                <input
-                  type="number"
-                  step={0.1}
-                  min={0}
-                  value={alpha}
-                  onChange={(e) => setAlpha(e.target.value)}
-                />
-              </label>
-              <label className={styles.weight}>
-                <span>β (deadline)</span>
-                <input
-                  type="number"
-                  step={0.1}
-                  min={0}
-                  value={beta}
-                  onChange={(e) => setBeta(e.target.value)}
-                />
-              </label>
-              <label className={styles.weight}>
-                <span>γ (dependents)</span>
-                <input
-                  type="number"
-                  step={0.1}
-                  min={0}
-                  value={gamma}
-                  onChange={(e) => setGamma(e.target.value)}
-                />
-              </label>
-            </div>
+              </>
+            }
+            action={
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                leftIcon={<RotateCcw size={12} />}
+                onClick={resetWeights}
+              >
+                Reset
+              </Button>
+            }
+          />
+          <div className={styles.weightGrid}>
+            <Input
+              label="α priority"
+              type="number"
+              step={0.1}
+              min={0}
+              value={alpha}
+              onChange={(e) => setAlpha(e.target.value)}
+              inputSize="sm"
+            />
+            <Input
+              label="β deadline"
+              type="number"
+              step={0.1}
+              min={0}
+              value={beta}
+              onChange={(e) => setBeta(e.target.value)}
+              inputSize="sm"
+            />
+            <Input
+              label="γ dependents"
+              type="number"
+              step={0.1}
+              min={0}
+              value={gamma}
+              onChange={(e) => setGamma(e.target.value)}
+              inputSize="sm"
+            />
           </div>
-        </fieldset>
+        </Card>
 
-        <div className={styles.actions}>
-          <button type="submit" className={styles.runBtn} disabled={running}>
-            {running ? <Spinner size={14} inline label="Running" /> : <Play size={16} />}
+        <div className={styles.runRow}>
+          <Button type="submit" loading={running} size="lg" leftIcon={<Play size={16} />}>
             {running ? 'Running…' : 'Run optimizer'}
-          </button>
+          </Button>
           <span className={styles.existingNote}>
             {existingAssignments
               ? `${existingAssignments.length} assignment${existingAssignments.length === 1 ? '' : 's'} currently in DB`
@@ -273,45 +290,88 @@ export default function OptimizerPage() {
 
       {result && (
         <>
-          <section className={styles.summary}>
-            <Metric label="Strategy" value={result.strategy} />
-            <Metric label="New assignments" value={result.assignments.length} />
-            <Metric
-              label="Preserved"
-              value={`${result.preservedCount}${result.lockedCount > 0 ? ` (${result.lockedCount} locked)` : ''}`}
+          <div className={styles.metricsRow}>
+            <StatCard
+              label="New assignments"
+              value={result.assignments.length}
+              icon={<Sparkles size={16} />}
+              tone="accent"
             />
-            <Metric label="Removed" value={result.removedCount} />
-            <Metric label="Unassigned" value={result.unassigned.length} />
-            <Metric label="Avg load (h)" value={result.metrics.avgLoad} />
-            <Metric label="Stddev load" value={result.metrics.stdDevLoad} />
-            <Metric label="Overloaded" value={result.metrics.overloadedCount} />
-            <Metric label="Time (ms)" value={result.metrics.executionTimeMs} />
-          </section>
+            <StatCard
+              label="Preserved"
+              value={`${result.preservedCount}${
+                result.lockedCount > 0 ? ` (${result.lockedCount} locked)` : ''
+              }`}
+              icon={<Lock size={16} />}
+            />
+            <StatCard
+              label="Removed"
+              value={result.removedCount}
+              icon={<RotateCcw size={16} />}
+              tone={result.removedCount > 0 ? 'warning' : 'default'}
+            />
+            <StatCard
+              label="Unassigned"
+              value={result.unassigned.length}
+              icon={<TriangleAlert size={16} />}
+              tone={result.unassigned.length > 0 ? 'warning' : 'success'}
+            />
+            <StatCard
+              label="Avg load"
+              value={`${result.metrics.avgLoad}h`}
+              icon={<Calculator size={16} />}
+            />
+            <StatCard
+              label="Stddev load"
+              value={result.metrics.stdDevLoad}
+              icon={<Calculator size={16} />}
+            />
+            <StatCard
+              label="Overloaded"
+              value={result.metrics.overloadedCount}
+              icon={<TriangleAlert size={16} />}
+              tone={result.metrics.overloadedCount > 0 ? 'danger' : 'success'}
+            />
+            <StatCard
+              label="Time"
+              value={`${result.metrics.executionTimeMs}ms`}
+              icon={<Sparkles size={16} />}
+            />
+          </div>
 
           {result.assignments.length === 0 && result.unassigned.length === 0 && (
-            <p className={styles.calmNote}>
-              All in-scope tasks are already assigned. Nothing left for the optimizer to schedule.
-            </p>
+            <Card padding="md" className={styles.calmNote}>
+              <CheckCircle2 size={16} />
+              <span>
+                All in-scope tasks are already assigned. Nothing left for the optimizer to schedule.
+              </span>
+            </Card>
           )}
 
-          <section>
-            <h2 className={styles.subheading}>Assignments by employee</h2>
-            {assignmentsByUser.length === 0 ? (
-              <EmptyState title="No assignments produced" />
-            ) : (
-              <div className={styles.assignTable}>
+          {assignmentsByUser.length > 0 && (
+            <Card padding="lg">
+              <SectionHeader
+                as="h3"
+                title="Assignments by employee"
+                description={`${result.assignments.length} new assignment${result.assignments.length === 1 ? '' : 's'} created`}
+              />
+              <div className={styles.assignGrid}>
                 {assignmentsByUser.map((g) => (
-                  <article key={g.userId} className={styles.assignGroup}>
-                    <header>
-                      <strong>{g.user?.fullName ?? g.userId}</strong>
-                      <span className={styles.muted}>
-                        {g.rows.length} task{g.rows.length === 1 ? '' : 's'} · {g.totalHours}h
-                        {g.user && ` / ${g.user.maxHoursPerWeek}h cap`}
+                  <Card key={g.userId} padding="md" variant="default" className={styles.empGroup}>
+                    <header className={styles.empHeader}>
+                      <span className={styles.empIdentity}>
+                        <Avatar name={g.user?.fullName ?? g.userId} size="sm" />
+                        <span className={styles.empName}>
+                          {g.user?.fullName ?? g.userId}
+                        </span>
                       </span>
+                      <Badge variant="accent" size="sm">
+                        {g.totalHours}h
+                        {g.user && ` / ${g.user.maxHoursPerWeek}h`}
+                      </Badge>
                     </header>
-                    <ul>
+                    <ul className={styles.empTaskList}>
                       {g.rows.map((r) => {
-                        // Find the originating project for this taskId via assignments lookup.
                         const ea = existingAssignments?.find((x) => x.taskId === r.taskId);
                         const projectName =
                           ea?.task.projectName ??
@@ -319,45 +379,51 @@ export default function OptimizerPage() {
                           '—';
                         const taskName = ea?.task.name ?? r.taskId.slice(0, 8);
                         return (
-                          <li key={r.taskId}>
-                            <span>{taskName}</span>
-                            <span className={styles.muted}>
+                          <li key={r.taskId} className={styles.empTaskRow}>
+                            <span className={styles.empTaskName}>{taskName}</span>
+                            <span className={styles.empTaskMeta}>
                               {r.plannedHours}h · {projectName}
                             </span>
                           </li>
                         );
                       })}
                     </ul>
-                  </article>
+                  </Card>
                 ))}
               </div>
-            )}
-          </section>
+            </Card>
+          )}
 
           {result.unassigned.length > 0 && (
-            <section>
-              <h2 className={styles.subheading}>Unassigned tasks</h2>
+            <Card padding="lg">
+              <SectionHeader
+                as="h3"
+                title="Unassigned tasks"
+                description={`${result.unassigned.length} task${result.unassigned.length === 1 ? '' : 's'} couldn't be scheduled`}
+              />
               <ul className={styles.unassignedList}>
                 {result.unassigned.map((u) => (
-                  <li key={u.taskId}>
-                    <strong>{u.taskName}</strong>
-                    <span className={styles.muted}>· {u.reason}</span>
+                  <li key={u.taskId} className={styles.unassignedRow}>
+                    <span className={styles.unassignedName}>
+                      <ListChecks size={14} />
+                      {u.taskName}
+                    </span>
+                    <span className={styles.unassignedReason}>{u.reason}</span>
                   </li>
                 ))}
               </ul>
-            </section>
+            </Card>
           )}
         </>
       )}
-    </section>
-  );
-}
 
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className={styles.metric}>
-      <span className={styles.metricLabel}>{label}</span>
-      <strong className={styles.metricValue}>{value}</strong>
-    </div>
+      {!result && !running && (
+        <EmptyState
+          icon={<Sparkles size={20} />}
+          title="No run yet"
+          description="Configure the options above and click Run optimizer to see results."
+        />
+      )}
+    </PageContainer>
   );
 }

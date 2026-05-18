@@ -4,8 +4,8 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { Role } from '@workforce/shared';
 import { useAuthStore } from '@/stores/auth-store';
-import { Nav } from '@/components/Nav';
-import { Spinner } from '@/components/Spinner';
+import { AppShell } from '@/components/layout';
+import { Spinner } from '@/components/ui';
 import styles from './layout.module.scss';
 
 function rolePrefix(role: Role): string {
@@ -46,18 +46,11 @@ export default function AuthedLayout({ children }: { children: React.ReactNode }
 
   if (!token || !user) {
     return (
-      <div className={styles.shell}>
-        <div className={styles.loading}>
-          <Spinner size={24} label="Loading session" />
-        </div>
+      <div className={styles.bootShell}>
+        <Spinner size="lg" label="Loading session" />
       </div>
     );
   }
 
-  return (
-    <div className={styles.shell}>
-      <Nav />
-      <main className={styles.main}>{children}</main>
-    </div>
-  );
+  return <AppShell>{children}</AppShell>;
 }

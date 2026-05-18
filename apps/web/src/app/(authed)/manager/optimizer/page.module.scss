@@ -1,301 +1,195 @@
-@use '@/styles/variables' as *;
-
-.page {
-  display: flex;
-  flex-direction: column;
-  gap: $space-5;
-}
-
-.heading {
-  display: inline-flex;
-  align-items: center;
-  gap: $space-2;
-  margin: 0 0 $space-2 0;
-  font-size: $font-size-2xl;
-}
-
-.subtitle {
-  margin: 0 0 $space-4 0;
-  color: $color-text-muted;
-  max-width: 720px;
-}
-
-.subheading {
-  margin: 0 0 $space-3 0;
-  font-size: $font-size-xl;
-}
-
-.muted {
-  color: $color-text-muted;
-}
-
-.error {
-  background: $color-status-over;
-  padding: $space-2 $space-3;
-  border-radius: $radius-sm;
-  color: #842029;
-  font-size: $font-size-sm;
-}
-
 .controls {
-  background: $color-bg;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  padding: $space-4;
   display: flex;
   flex-direction: column;
-  gap: $space-4;
+  gap: var(--space-4);
 }
 
-.fieldset {
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  padding: $space-3 $space-4 $space-4 $space-4;
-  margin: 0;
+.projectScope {
   display: flex;
-  flex-direction: column;
-  gap: $space-3;
-
-  legend {
-    padding: 0 $space-2;
-    font-size: $font-size-xs;
-    color: $color-text-muted;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-}
-
-.projectChoice {
-  display: flex;
-  gap: $space-4;
-  font-size: $font-size-sm;
-}
-
-.radio,
-.check {
-  display: inline-flex;
-  align-items: center;
-  gap: $space-1;
-  cursor: pointer;
-  font-size: $font-size-sm;
-}
-
-.radioHint {
-  display: block;
-  margin-top: 2px;
-  color: $color-text-muted;
-  font-style: normal;
-  font-size: $font-size-xs;
-}
-
-.calmNote {
-  padding: $space-3 $space-4;
-  background: $color-surface;
-  border-radius: $radius-md;
-  color: $color-text-muted;
-  font-size: $font-size-sm;
-  margin: 0;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
 }
 
 .projectList {
   list-style: none;
-  margin: 0;
+  margin: var(--space-3) 0 0 0;
   padding: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $space-2;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-2);
+  max-height: 260px;
+  overflow-y: auto;
 }
 
-.weights {
+.projectLabel {
   display: flex;
   flex-direction: column;
-  gap: $space-2;
-  font-size: $font-size-sm;
+  gap: 2px;
 }
 
-.weightsHeader {
+.projectMeta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.modeOptions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $space-2;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.modeLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: var(--leading-normal);
+}
+
+.modeHint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 .formula {
   display: inline-block;
-  margin-left: $space-1;
-  background: $color-surface;
-  padding: 2px $space-2;
-  border-radius: $radius-sm;
-  font-size: $font-size-xs;
+  margin-top: 4px;
+  padding: 2px var(--space-2);
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
 }
 
-.linkBtn {
-  background: none;
-  border: none;
-  color: $color-accent;
-  font-size: $font-size-xs;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-
-  &:hover {
-    color: $color-accent-hover;
-    text-decoration: underline;
-  }
-}
-
-.weightInputs {
+.weightGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: $space-3;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 
-.weight {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: $font-size-sm;
-
-  span {
-    color: $color-text-muted;
-    font-size: $font-size-xs;
-  }
-
-  input {
-    padding: $space-2 $space-3;
-    border: 1px solid $color-border;
-    border-radius: $radius-md;
-    font-size: $font-size-sm;
-    font-family: inherit;
-  }
-}
-
-.actions {
+.runRow {
   display: flex;
   align-items: center;
-  gap: $space-3;
-}
-
-.runBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: $space-2;
-  padding: $space-3 $space-5;
-  background: $color-accent;
-  color: #fff;
-  border: none;
-  border-radius: $radius-md;
-  font-size: $font-size-base;
-  font-weight: 500;
-  cursor: pointer;
-
-  &:hover {
-    background: $color-accent-hover;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
+  gap: var(--space-4);
 }
 
 .existingNote {
-  color: $color-text-muted;
-  font-size: $font-size-sm;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
 
-.summary {
+.metricsRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: $space-3;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
 }
 
-.metric {
-  background: $color-bg;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  padding: $space-3;
+.calmNote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-success);
+  font-size: var(--text-sm);
+  background: var(--color-success-bg);
+  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+}
+
+[data-theme='dark'] .calmNote {
+  color: var(--color-success);
+}
+
+.assignGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.empGroup {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
-.metricLabel {
-  color: $color-text-muted;
-  font-size: $font-size-xs;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.empHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.metricValue {
-  font-size: $font-size-lg;
+.empIdentity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
-.assignTable {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: $space-3;
+.empName {
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
 }
 
-.assignGroup {
-  background: $color-bg;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  padding: $space-3 $space-4;
+.empTaskList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
 
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: $space-2;
-    padding-bottom: $space-2;
-    border-bottom: 1px solid $color-border;
-    margin-bottom: $space-2;
-    font-size: $font-size-sm;
-  }
+.empTaskRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+}
 
-  ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: $space-1;
+.empTaskName {
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-    li {
-      display: flex;
-      justify-content: space-between;
-      gap: $space-2;
-      font-size: $font-size-sm;
-    }
-  }
+.empTaskMeta {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 
 .unassignedList {
   list-style: none;
-  margin: 0;
+  margin: var(--space-3) 0 0 0;
   padding: 0;
-  background: $color-bg;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
 
-  li {
-    display: flex;
-    gap: $space-2;
-    align-items: center;
-    padding: $space-2 $space-4;
-    font-size: $font-size-sm;
-    border-bottom: 1px solid $color-border;
+.unassignedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
 
-    &:last-child {
-      border-bottom: none;
-    }
-  }
+.unassignedName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+}
+
+.unassignedReason {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
 }

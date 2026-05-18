@@ -10,10 +10,27 @@ import { skillsApi } from '@/lib/api/skills';
 import { friendlyError } from '@/lib/api-errors';
 import { useAuthStore } from '@/stores/auth-store';
 import { toastError, toastSuccess } from '@/stores/ui-store';
+import { PageContainer } from '@/components/layout';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  Field,
+  Input,
+  Modal,
+  SectionHeader,
+  Select,
+  Skeleton,
+} from '@/components/ui';
 import { SkillsSelect } from '@/components/SkillsSelect';
-import { Spinner } from '@/components/Spinner';
-import { Modal } from '@/components/Modal';
 import styles from './page.module.scss';
+
+const ROLE_VARIANT: Record<Role, 'accent' | 'info' | 'neutral'> = {
+  ADMIN: 'accent',
+  MANAGER: 'info',
+  EMPLOYEE: 'neutral',
+};
 
 export default function EditUserPage() {
   const router = useRouter();
@@ -66,9 +83,7 @@ export default function EditUserPage() {
   const adminCount = allUsers?.filter((u) => u.role === 'ADMIN').length ?? 0;
   const isLastAdmin = !!target && target.role === 'ADMIN' && adminCount <= 1;
 
-  // Self can't change role; last admin can't be demoted; everyone else free.
   const roleDisabled = isSelf || isLastAdmin;
-  // Self can't be deleted; last admin can't be deleted.
   const deleteDisabled = isSelf || isLastAdmin;
   const deleteTitle = isSelf
     ? 'You cannot delete yourself'
@@ -98,7 +113,6 @@ export default function EditUserPage() {
         maxHoursPerWeek: Number.parseInt(maxHoursPerWeek, 10),
         skillIds,
       };
-      // Only send role when allowed to change it AND it changed.
       if (!roleDisabled && role !== target.role) body.role = role;
       await usersApi.update(target.id, body);
       toastSuccess('User updated');
@@ -149,160 +163,173 @@ export default function EditUserPage() {
 
   if (loadError && !target) {
     return (
-      <section>
+      <PageContainer size="narrow">
         <Link href="/admin/users" className={styles.back}>
           <ChevronLeft size={14} /> Back to users
         </Link>
         <p className={styles.error}>{loadError}</p>
-      </section>
+      </PageContainer>
     );
   }
 
   if (!target || !allUsers) {
     return (
-      <section>
-        <Spinner label="Loading user" />
-      </section>
+      <PageContainer size="narrow">
+        <Link href="/admin/users" className={styles.back}>
+          <ChevronLeft size={14} /> Back to users
+        </Link>
+        <Card padding="lg">
+          <div className={styles.skeletonBlock}>
+            <Skeleton circle width={48} height={48} />
+            <div className={styles.skeletonStack}>
+              <Skeleton width={220} height={20} />
+              <Skeleton width={320} height={14} />
+            </div>
+          </div>
+          <div className={styles.skeletonStack} style={{ marginTop: 'var(--space-4)' }}>
+            <Skeleton width="100%" height={36} />
+            <Skeleton width="100%" height={36} />
+            <Skeleton width="100%" height={36} />
+          </div>
+        </Card>
+      </PageContainer>
     );
   }
 
   return (
-    <section className={styles.page}>
+    <PageContainer size="narrow">
       <Link href="/admin/users" className={styles.back}>
         <ChevronLeft size={14} /> Back to users
       </Link>
 
-      <header className={styles.headerRow}>
-        <div>
-          <h1 className={styles.heading}>
-            {target.fullName}
-            {isSelf && <span className={styles.youBadge}>(you)</span>}
-          </h1>
-          <p className={styles.subtitle}>Edit profile, role, hours, skills.</p>
-        </div>
-        <div className={styles.headerActions}>
-          <button
-            type="button"
-            className={styles.secondaryBtn}
-            onClick={() => setPwModalOpen(true)}
-          >
-            <KeyRound size={14} /> Change password
-          </button>
-          {!isSelf && (
-            <button
+      <Card padding="lg">
+        <header className={styles.identityRow}>
+          <Avatar name={target.fullName} size="lg" />
+          <div className={styles.identityText}>
+            <h1 className={styles.name}>
+              {target.fullName}
+              {isSelf && (
+                <Badge variant="neutral" size="sm">
+                  you
+                </Badge>
+              )}
+            </h1>
+            <div className={styles.identityMeta}>
+              <span className={styles.email}>{target.email}</span>
+              <Badge variant={ROLE_VARIANT[target.role]} size="sm">
+                {target.role.toLowerCase()}
+              </Badge>
+            </div>
+          </div>
+          <div className={styles.headerActions}>
+            <Button
               type="button"
-              className={styles.dangerBtn}
+              variant="secondary"
+              leftIcon={<KeyRound size={14} />}
+              onClick={() => setPwModalOpen(true)}
+            >
+              Change password
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              leftIcon={<Trash2 size={14} />}
               onClick={() => setDeleteModalOpen(true)}
               disabled={deleteDisabled}
               title={deleteTitle}
+              className={styles.dangerBtn}
             >
-              <Trash2 size={14} /> Delete user
-            </button>
-          )}
-        </div>
-      </header>
+              Delete
+            </Button>
+          </div>
+        </header>
+      </Card>
 
-      <form className={styles.form} onSubmit={submit} noValidate>
-        <Field label="Full name" error={fieldErrors.fullName}>
-          <input
+      <Card padding="lg">
+        <SectionHeader
+          as="h2"
+          title="Profile"
+          description="Edit core profile, role, hours and skills."
+        />
+        <form className={styles.form} onSubmit={submit} noValidate>
+          <Input
+            label="Full name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             maxLength={100}
             required
+            error={fieldErrors.fullName}
           />
-        </Field>
 
-        <Field label="Email" error={fieldErrors.email}>
-          <input
+          <Input
+            label="Email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            error={fieldErrors.email}
           />
-        </Field>
 
-        <Field
-          label="Role"
-          help={
-            isSelf
-              ? 'You cannot change your own role.'
-              : isLastAdmin
-                ? 'Cannot demote the last administrator.'
-                : undefined
-          }
-        >
-          <select
+          <Select
+            label="Role"
             value={role}
             onChange={(e) => setRole(e.target.value as Role)}
             disabled={roleDisabled}
+            helper={
+              isSelf
+                ? 'You cannot change your own role.'
+                : isLastAdmin
+                  ? 'Cannot demote the last administrator.'
+                  : undefined
+            }
           >
             <option value="EMPLOYEE">Employee</option>
             <option value="MANAGER">Manager</option>
             <option value="ADMIN">Admin</option>
-          </select>
-        </Field>
+          </Select>
 
-        <Field label="Max hours per week" error={fieldErrors.maxHoursPerWeek}>
-          <input
+          <Input
+            label="Max hours per week"
             type="number"
             min={1}
             max={80}
             value={maxHoursPerWeek}
             onChange={(e) => setMaxHoursPerWeek(e.target.value)}
+            error={fieldErrors.maxHoursPerWeek}
+            className={styles.numberInput}
           />
-        </Field>
 
-        <div>
-          <span className={styles.label}>Skills</span>
-          <SkillsSelect allSkills={allSkills} selectedIds={skillIds} onChange={setSkillIds} />
-        </div>
+          <Field label="Skills">
+            <SkillsSelect allSkills={allSkills} selectedIds={skillIds} onChange={setSkillIds} />
+          </Field>
 
-        <div className={styles.actions}>
-          <Link href="/admin/users" className={styles.cancelBtn}>
-            Cancel
-          </Link>
-          <button type="submit" className={styles.submitBtn} disabled={busy}>
-            {busy ? 'Saving…' : 'Save changes'}
-          </button>
-        </div>
-      </form>
+          <div className={styles.actions}>
+            <Link href="/admin/users">
+              <Button type="button" variant="secondary">
+                Cancel
+              </Button>
+            </Link>
+            <Button type="submit" loading={busy}>
+              Save changes
+            </Button>
+          </div>
+        </form>
+      </Card>
 
       <Modal
         open={pwModalOpen}
         title="Change password"
+        size="sm"
         onClose={() => {
           setPwModalOpen(false);
           setNewPassword('');
           setPwError(null);
         }}
-        footer={
-          <>
-            <button
-              type="button"
-              className={styles.cancelBtnInline}
-              onClick={() => {
-                setPwModalOpen(false);
-                setNewPassword('');
-                setPwError(null);
-              }}
-              disabled={pwBusy}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              form="pw-form"
-              className={styles.submitBtn}
-              disabled={pwBusy}
-            >
-              {pwBusy ? 'Saving…' : 'Save password'}
-            </button>
-          </>
-        }
       >
-        <form id="pw-form" onSubmit={submitPassword}>
-          <Field label="New password" error={pwError ?? undefined}>
-            <input
+        <Modal.Body>
+          <form id="pw-form" onSubmit={submitPassword}>
+            <Input
+              label="New password"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -310,65 +337,58 @@ export default function EditUserPage() {
               maxLength={72}
               autoFocus
               required
+              error={pwError ?? undefined}
             />
-          </Field>
-        </form>
+          </form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setPwModalOpen(false);
+              setNewPassword('');
+              setPwError(null);
+            }}
+            disabled={pwBusy}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" form="pw-form" loading={pwBusy}>
+            Save password
+          </Button>
+        </Modal.Footer>
       </Modal>
 
       <Modal
         open={deleteModalOpen}
         title="Delete user"
+        size="sm"
         onClose={() => setDeleteModalOpen(false)}
-        footer={
-          <>
-            <button
-              type="button"
-              className={styles.cancelBtnInline}
-              onClick={() => setDeleteModalOpen(false)}
-              disabled={deleteBusy}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className={styles.dangerBtn}
-              onClick={deleteUser}
-              disabled={deleteBusy}
-            >
-              {deleteBusy ? 'Deleting…' : 'Delete user'}
-            </button>
-          </>
-        }
       >
-        <p>
-          Delete <strong>{target.fullName}</strong> ({target.email})?
-        </p>
-        <p className={styles.muted}>
-          All assignments owned by this user will be removed automatically. Projects and tasks
-          are not affected.
-        </p>
+        <Modal.Body>
+          <p>
+            Delete <strong>{target.fullName}</strong> ({target.email})?
+          </p>
+          <p className={styles.muted}>
+            All assignments owned by this user will be removed automatically. Projects and tasks
+            are not affected.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setDeleteModalOpen(false)}
+            disabled={deleteBusy}
+          >
+            Cancel
+          </Button>
+          <Button type="button" variant="danger" onClick={deleteUser} loading={deleteBusy}>
+            Delete user
+          </Button>
+        </Modal.Footer>
       </Modal>
-    </section>
-  );
-}
-
-function Field({
-  label,
-  error,
-  help,
-  children,
-}: {
-  label: string;
-  error?: string;
-  help?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className={styles.field}>
-      <span className={styles.label}>{label}</span>
-      {children}
-      {error && <span className={styles.fieldError}>{error}</span>}
-      {help && !error && <span className={styles.help}>{help}</span>}
-    </label>
+    </PageContainer>
   );
 }

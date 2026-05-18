@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Clock } from 'lucide-react';
+import { CalendarDays, ListTodo, TrendingUp } from 'lucide-react';
 import type {
   AssignmentWithRefsDto,
   WorkloadEntryDto,
@@ -15,9 +15,16 @@ import {
   type WeekDay,
 } from '@/lib/workload-week';
 import { toastError } from '@/stores/ui-store';
-import { EmptyState } from '@/components/EmptyState';
-import { Spinner } from '@/components/Spinner';
+import { PageContainer } from '@/components/layout';
+import { Badge, Card, EmptyState, SectionHeader, Skeleton } from '@/components/ui';
+import { StatCard } from '@/components/dashboard';
 import styles from './page.module.scss';
+
+const STATUS_VARIANT: Record<string, 'neutral' | 'accent' | 'success'> = {
+  TODO: 'neutral',
+  IN_PROGRESS: 'accent',
+  DONE: 'success',
+};
 
 export default function EmployeeWorkloadPage() {
   const [me, setMe] = useState<WorkloadEntryDto | null>(null);
@@ -43,168 +50,187 @@ export default function EmployeeWorkloadPage() {
     return bucketAssignmentsByDay(mine, week);
   }, [mine, week]);
 
-  if (loadError) {
-    return (
-      <section>
-        <h1 className={styles.heading}>My workload</h1>
-        <p className={styles.error}>{loadError}</p>
-      </section>
-    );
-  }
+  const ready = me && mine && bucketed;
+  const dailyMax = me ? me.maxHours / 5 : 0;
+  const utilization =
+    me && me.maxHours > 0 ? Math.round((me.plannedHours / me.maxHours) * 100) : 0;
 
-  if (!me || !mine || !bucketed) {
-    return (
-      <section>
-        <h1 className={styles.heading}>My workload</h1>
-        <Spinner label="Loading your workload" />
-      </section>
-    );
-  }
-
-  const dailyMax = me.maxHours / 5;
-  const utilization = me.maxHours > 0 ? Math.round((me.plannedHours / me.maxHours) * 100) : 0;
+  const utilizationTone: 'success' | 'warning' | 'danger' | 'accent' = me
+    ? me.status === 'over'
+      ? 'danger'
+      : me.status === 'normal'
+        ? 'warning'
+        : 'success'
+    : 'accent';
 
   return (
-    <section className={styles.page}>
-      <header>
-        <h1 className={styles.heading}>
-          <CalendarDays size={20} /> My workload
-        </h1>
-        <p className={styles.subtitle}>
+    <PageContainer
+      title="My workload"
+      description={
+        <>
           Hours from tasks assigned to you, bucketed by their deadline. Daily capacity is{' '}
-          <code className={styles.code}>{Math.round(dailyMax * 10) / 10}h</code>.
-        </p>
-      </header>
+          <code className={styles.code}>
+            {me ? `${Math.round(dailyMax * 10) / 10}h` : '—'}
+          </code>
+          .
+        </>
+      }
+    >
+      {loadError && <p className={styles.error}>{loadError}</p>}
 
       <div className={styles.summary}>
-        <SummaryCard label="Planned this week" value={`${roundTo(me.plannedHours)}h`} />
-        <SummaryCard label="Cap" value={`${me.maxHours}h`} />
-        <SummaryCard label="Utilization" value={`${utilization}%`} kind={me.status} />
-      </div>
-
-      <div className={styles.bar}>
-        <div
-          className={`${styles.barFill} ${styles[`barFill_${me.status}`]}`}
-          style={{ width: `${Math.min(100, utilization)}%` }}
+        <StatCard
+          label="Planned this week"
+          value={me ? `${roundTo(me.plannedHours)}h` : null}
+          icon={<CalendarDays size={16} />}
+        />
+        <StatCard label="Weekly cap" value={me ? `${me.maxHours}h` : null} />
+        <StatCard
+          label="Utilization"
+          value={me ? `${utilization}%` : null}
+          icon={<TrendingUp size={16} />}
+          tone={utilizationTone}
+          description={me ? statusExplanation(me.status) : undefined}
         />
       </div>
-      <p className={styles.barNote}>
-        Status: <strong className={styles[`status_${me.status}`]}>{me.status}</strong>
-        {' · '}
-        {statusExplanation(me.status)}
-      </p>
 
-      {mine.length === 0 ? (
-        <EmptyState
-          title="No tasks assigned yet"
-          description="Once your manager runs the optimizer, your week will appear here."
-        />
-      ) : (
+      {!ready && !loadError && (
+        <Card padding="none">
+          <div className={styles.skeletonStack}>
+            {Array.from({ length: 3 }, (_, i) => (
+              <div key={i} className={styles.skeletonRow}>
+                <Skeleton width={180} height={14} />
+                <Skeleton width={'70%'} height={14} />
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {ready && bucketed.outsideWeekCount > 0 && (
+        <Card padding="md">
+          <p className={styles.outsideNote}>
+            <TrendingUp size={14} />
+            {bucketed.outsideWeekCount} of your tasks have a deadline outside this week (no
+            deadline, or earlier/later than Mon–Fri).
+          </p>
+        </Card>
+      )}
+
+      {ready && mine!.length === 0 && (
+        <Card padding="lg">
+          <EmptyState
+            icon={<ListTodo size={20} />}
+            title="No tasks assigned yet"
+            description="Once your manager runs the optimizer, your week will appear here."
+          />
+        </Card>
+      )}
+
+      {ready && mine!.length > 0 && (
         <>
-          <h2 className={styles.subheading}>My week</h2>
-          <div className={styles.tableWrap}>
-            <table className={styles.heatmap}>
-              <thead>
-                <tr>
-                  {week.map((d) => (
-                    <th key={d.iso}>
-                      <span className={styles.dayLabel}>{d.label}</span>
-                      <span className={styles.dayShort}>{d.short}</span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {week.map((d) => {
-                    const h = bucketed.cells.get(`${me.userId}|${d.iso}`) ?? 0;
-                    const status = cellStatus(h, dailyMax);
-                    return (
-                      <td
-                        key={d.iso}
-                        className={`${styles.cell} ${styles[`cell_${status}`]}`}
-                        title={`${d.label} ${d.short}: ${h}h (daily max ${Math.round(dailyMax * 10) / 10}h)`}
-                      >
-                        {h > 0 ? `${roundTo(h)}h` : '—'}
-                      </td>
-                    );
-                  })}
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <Card padding="none">
+            <div className={styles.tableWrap}>
+              <table className={styles.heatmap}>
+                <thead>
+                  <tr>
+                    {week.map((d) => (
+                      <th key={d.iso}>
+                        <span className={styles.dayLabel}>{d.label}</span>
+                        <span className={styles.dayShort}>{d.short}</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {week.map((d) => {
+                      const h = bucketed!.cells.get(`${me!.userId}|${d.iso}`) ?? 0;
+                      const status = cellStatus(h, dailyMax);
+                      return (
+                        <td
+                          key={d.iso}
+                          className={`${styles.cell} ${styles[`cell_${status}`]}`}
+                          title={`${d.label} ${d.short}: ${h}h (daily max ${Math.round(dailyMax * 10) / 10}h)`}
+                        >
+                          {h > 0 ? `${roundTo(h)}h` : '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </Card>
 
-          {bucketed.outsideWeekCount > 0 && (
-            <p className={styles.note}>
-              {bucketed.outsideWeekCount} of your tasks have a deadline outside this week (no
-              deadline, or earlier/later than Mon–Fri).
-            </p>
-          )}
+          <ul className={styles.legend}>
+            <li>
+              <span className={`${styles.swatch} ${styles.cell_under}`} aria-hidden /> Under
+              capacity
+            </li>
+            <li>
+              <span className={`${styles.swatch} ${styles.cell_normal}`} aria-hidden /> Near
+              capacity
+            </li>
+            <li>
+              <span className={`${styles.swatch} ${styles.cell_over}`} aria-hidden /> Over
+              capacity
+            </li>
+          </ul>
 
-          <h2 className={styles.subheading}>My tasks</h2>
-          <div className={styles.tableWrap}>
-            <table className={styles.taskTable}>
-              <thead>
-                <tr>
-                  <th>Task</th>
-                  <th>Project</th>
-                  <th>Hours</th>
-                  <th>Deadline</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...mine]
-                  .sort((a, b) => {
-                    const ad = a.task.deadline ?? '9999-12-31';
-                    const bd = b.task.deadline ?? '9999-12-31';
-                    return ad.localeCompare(bd);
-                  })
-                  .map((a) => (
-                    <tr key={a.id}>
-                      <td className={styles.taskName}>{a.task.name}</td>
-                      <td className={styles.muted}>{a.task.projectName}</td>
-                      <td>{a.plannedHours}h</td>
-                      <td className={styles.muted}>
-                        {a.task.deadline ? new Date(a.task.deadline).toLocaleDateString() : '—'}
-                      </td>
-                      <td>
-                        <span className={`${styles.taskStatus} ${styles[`taskStatus_${a.task.status}`]}`}>
-                          {a.task.status.toLowerCase().replace('_', ' ')}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+          <Card padding="none">
+            <div className={styles.tableHeader}>
+              <SectionHeader as="h3" title="My tasks" description="Sorted by deadline" />
+            </div>
+            <div className={styles.tableWrap}>
+              <table className={styles.taskTable}>
+                <thead>
+                  <tr>
+                    <th>Task</th>
+                    <th>Project</th>
+                    <th>Hours</th>
+                    <th>Deadline</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...mine!]
+                    .sort((a, b) => {
+                      const ad = a.task.deadline ?? '9999-12-31';
+                      const bd = b.task.deadline ?? '9999-12-31';
+                      return ad.localeCompare(bd);
+                    })
+                    .map((a) => (
+                      <tr key={a.id}>
+                        <td className={styles.taskName}>{a.task.name}</td>
+                        <td className={styles.muted}>{a.task.projectName}</td>
+                        <td className={styles.hours}>{a.plannedHours}h</td>
+                        <td className={styles.muted}>
+                          {a.task.deadline
+                            ? new Date(a.task.deadline).toLocaleDateString()
+                            : '—'}
+                        </td>
+                        <td>
+                          <Badge variant={STATUS_VARIANT[a.task.status] ?? 'neutral'} size="sm">
+                            {a.task.status.toLowerCase().replace('_', ' ')}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </>
       )}
-    </section>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  kind,
-}: {
-  label: string;
-  value: string | number;
-  kind?: 'under' | 'normal' | 'over';
-}) {
-  return (
-    <article className={`${styles.card} ${kind ? styles[`card_${kind}`] : ''}`}>
-      <span className={styles.cardLabel}>{label}</span>
-      <strong className={styles.cardValue}>{value}</strong>
-    </article>
+    </PageContainer>
   );
 }
 
 function statusExplanation(status: 'under' | 'normal' | 'over'): string {
-  if (status === 'over') return 'planned hours exceed your weekly cap.';
-  if (status === 'normal') return '80–100% of your weekly cap — comfortably loaded.';
-  return 'less than 80% of your weekly cap — room for more.';
+  if (status === 'over') return 'Planned hours exceed your weekly cap.';
+  if (status === 'normal') return '80–100% of weekly cap — comfortably loaded.';
+  return 'Less than 80% of weekly cap — room for more.';
 }
 
 function roundTo(n: number): number {

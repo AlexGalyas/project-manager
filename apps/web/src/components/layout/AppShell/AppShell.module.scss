@@ -1,0 +1,23 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 56px 1fr;
+  grid-template-areas:
+    'header header'
+    'sidebar main';
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.shellCollapsed {
+  grid-template-columns: 64px 1fr;
+}
+
+.main {
+  grid-area: main;
+  min-width: 0;
+  background: var(--color-bg);
+  // Without this, a page that overflows horizontally would push the sidebar.
+  overflow-x: hidden;
+}

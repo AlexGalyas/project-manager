@@ -1,0 +1,156 @@
+.header {
+  grid-area: header;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  height: 56px;
+  padding: 0 var(--space-5);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+
+.brandLabel {
+  font-size: var(--text-md);
+}
+
+.right {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.userTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px var(--space-2) 4px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border);
+  }
+}
+
+.userName {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Identity block shown inside the dropdown header slot
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-1) 0;
+}
+
+.identityName {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.identityEmail {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.identityRole {
+  margin-top: 2px;
+  display: inline-block;
+  align-self: flex-start;
+  padding: 1px var(--space-2);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-text);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--weight-semibold);
+}
+
+// Theme segment in the dropdown footer slot
+.themeSegment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.themeLabel {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.themeBtns {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--color-bg-muted);
+  border-radius: var(--radius-md);
+  gap: 2px;
+}
+
+.themeBtn,
+.themeBtnActive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.themeBtn:hover {
+  color: var(--color-text);
+}
+
+.themeBtnActive {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-xs);
+}

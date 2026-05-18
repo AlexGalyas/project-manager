@@ -1,158 +1,148 @@
-@use '@/styles/variables' as *;
-
-.page {
-  display: flex;
-  flex-direction: column;
-  gap: $space-5;
-}
-
 .back {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: $color-text-muted;
+  color: var(--color-text-muted);
   text-decoration: none;
-  font-size: $font-size-sm;
+  font-size: var(--text-sm);
   width: fit-content;
+  transition: color var(--duration-fast) var(--ease-out);
 
   &:hover {
-    color: $color-text;
-  }
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: $space-4;
-}
-
-.heading {
-  margin: 0 0 $space-1 0;
-  font-size: $font-size-2xl;
-}
-
-.subtitle {
-  margin: 0 0 $space-2 0;
-  color: $color-text;
-  max-width: 720px;
-}
-
-.metaRow {
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-  margin: 0;
-  font-size: $font-size-sm;
-}
-
-.headerActions {
-  display: flex;
-  gap: $space-2;
-}
-
-.iconBtn,
-.deleteBtn,
-.cancelBtn,
-.submitBtn,
-.newBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: $space-2 $space-3;
-  border-radius: $radius-md;
-  font-size: $font-size-sm;
-  cursor: pointer;
-  border: 1px solid $color-border;
-  background: $color-bg;
-  color: $color-text;
-}
-
-.iconBtn:hover {
-  border-color: $color-text-muted;
-}
-
-.deleteBtn {
-  color: #b91c1c;
-  border-color: #fecaca;
-  background: #fef2f2;
-  &:hover {
-    background: #fee2e2;
-  }
-}
-
-.submitBtn {
-  background: $color-accent;
-  color: #fff;
-  border-color: $color-accent;
-  &:hover {
-    background: $color-accent-hover;
-    border-color: $color-accent-hover;
-  }
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
-
-.newBtn {
-  background: $color-accent;
-  color: #fff;
-  border-color: $color-accent;
-  &:hover {
-    background: $color-accent-hover;
+    color: var(--color-text);
+    text-decoration: none;
   }
 }
 
 .error {
-  background: $color-status-over;
-  padding: $space-2 $space-3;
-  border-radius: $radius-sm;
-  color: #842029;
-  font-size: $font-size-sm;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.headerText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-text);
+  max-width: 720px;
+}
+
+.metaRow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
 }
 
 .muted {
-  color: $color-text-muted;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
-.subheading {
-  margin: 0;
-  font-size: $font-size-xl;
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dangerBtn {
+  color: var(--color-text-muted);
+
+  &:hover:not(:disabled) {
+    color: var(--color-danger);
+    background: var(--color-danger-bg);
+  }
 }
 
 .tasksHeader {
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+.formWrap {
+  padding: 0 var(--space-4) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.editForm {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: -$space-2;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.priorityInput {
+  max-width: 160px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.checkList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+
+  li {
+    flex: 0 0 auto;
+  }
 }
 
 .tableWrap {
-  background: $color-bg;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
   overflow-x: auto;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: $font-size-sm;
+  font-size: var(--text-sm);
 
   th,
   td {
     text-align: left;
-    padding: $space-3 $space-4;
-    border-bottom: 1px solid $color-border;
-    vertical-align: top;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
   }
 
   thead th {
-    background: $color-surface;
-    font-weight: 600;
-    color: $color-text-muted;
-    font-size: $font-size-xs;
+    background: var(--color-bg-subtle);
+    color: var(--color-text-muted);
+    font-weight: var(--weight-medium);
+    font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -162,175 +152,50 @@
   }
 }
 
+.editingRow td {
+  background: var(--color-bg-subtle);
+  padding: var(--space-4);
+}
+
 .taskName {
-  font-weight: 500;
+  font-weight: var(--weight-medium);
+}
+
+.hours {
+  font-variant-numeric: tabular-nums;
+}
+
+.skillChips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
 }
 
 .actions {
-  display: flex;
-  gap: 4px;
-  justify-content: flex-end;
-}
-
-.iconBtnSmall {
-  width: 28px;
-  height: 28px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border: 1px solid $color-border;
-  background: $color-bg;
-  border-radius: $radius-sm;
-  color: $color-text-muted;
-  cursor: pointer;
-
-  &:hover {
-    color: $color-text;
-    border-color: $color-text-muted;
-  }
+  gap: var(--space-1);
 }
 
-.skillsList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-
-  li {
-    background: $color-surface;
-    padding: 2px $space-2;
-    border-radius: $radius-sm;
-    font-size: $font-size-xs;
-  }
-}
-
-.editCard {
-  padding: $space-4;
-  background: $color-bg;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
+.skeletonHeader {
   display: flex;
   flex-direction: column;
-  gap: $space-3;
+  gap: var(--space-2);
 }
 
-.formGrid {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-  gap: $space-3;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.field {
+.skeletonStack {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: $font-size-sm;
+}
 
-  span {
-    color: $color-text-muted;
-    font-size: $font-size-xs;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
+.skeletonRow {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
 
-  input,
-  textarea,
-  select {
-    padding: $space-2 $space-3;
-    border: 1px solid $color-border;
-    border-radius: $radius-md;
-    font-size: $font-size-sm;
-    font-family: inherit;
-    background: $color-bg;
-
-    &:focus {
-      outline: none;
-      border-color: $color-accent;
-    }
+  &:last-child {
+    border-bottom: none;
   }
 }
-
-.formActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: $space-2;
-}
-
-.checkGroup {
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  padding: $space-3 $space-3 $space-3 $space-3;
-  margin: 0;
-
-  legend {
-    padding: 0 $space-2;
-    font-size: $font-size-xs;
-    color: $color-text-muted;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-}
-
-.checkList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: $space-2;
-}
-
-.checkLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: $space-1;
-  padding: 4px $space-2;
-  background: $color-surface;
-  border-radius: $radius-sm;
-  font-size: $font-size-sm;
-  cursor: pointer;
-}
-
-.status {
-  display: inline-block;
-  padding: 2px $space-2;
-  border-radius: $radius-sm;
-  font-size: $font-size-xs;
-  font-weight: 500;
-  text-transform: capitalize;
-}
-
-.status_TODO {
-  background: $color-surface;
-  color: $color-text-muted;
-}
-
-.status_IN_PROGRESS {
-  background: rgba(37, 99, 235, 0.1);
-  color: $color-accent;
-}
-
-.status_DONE {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
-}
-
-.prio {
-  display: inline-block;
-  padding: 2px $space-2;
-  border-radius: $radius-sm;
-  font-size: $font-size-xs;
-  font-weight: 500;
-}
-
-.prio_1 { background: $color-surface; color: $color-text-muted; }
-.prio_2 { background: $color-surface; color: $color-text-muted; }
-.prio_3 { background: rgba(37, 99, 235, 0.1); color: $color-accent; }
-.prio_4 { background: rgba(245, 158, 11, 0.15); color: #b45309; }
-.prio_5 { background: rgba(220, 38, 38, 0.12); color: #b91c1c; }

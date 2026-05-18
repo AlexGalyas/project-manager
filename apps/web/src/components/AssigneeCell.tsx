@@ -1,10 +1,9 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Lock, LockOpen, UserPlus, X } from 'lucide-react';
 import type {
   AssignmentCreateInput,
-  AssignmentDto,
   AssignmentMutationResultDto,
   AssignmentUpdateInput,
   AssignmentWarningDto,
@@ -17,7 +16,7 @@ import {
   extractAssignmentWarnings,
 } from '@/lib/api/assignments';
 import { toastError, toastSuccess } from '@/stores/ui-store';
-import { Modal } from './Modal';
+import { Avatar, Badge, Button, Input, Modal } from './ui';
 import { AssignmentWarningsModal } from './AssignmentWarningsModal';
 import styles from './AssigneeCell.module.scss';
 
@@ -34,15 +33,6 @@ interface PendingAction {
   input: AssignmentCreateInput | AssignmentUpdateInput;
 }
 
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join('');
-}
-
 export function AssigneeCell({ task, employees, workload, onChanged }: Props) {
   const a = task.assignment;
   const assignedUser = useMemo(
@@ -54,12 +44,9 @@ export function AssigneeCell({ task, employees, workload, onChanged }: Props) {
   const [hoursInput, setHoursInput] = useState(String(a?.plannedHours ?? task.durationHours));
   const [busy, setBusy] = useState(false);
 
-  // Warning-modal state: if force=false produced warnings, hold them here +
-  // remember which mutation to retry on confirm.
   const [warnings, setWarnings] = useState<AssignmentWarningDto[] | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
-  // Delete confirm
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const requiredSkillIds = useMemo(() => task.skills.map((s) => s.skillId), [task.skills]);
@@ -91,13 +78,11 @@ export function AssigneeCell({ task, employees, workload, onChanged }: Props) {
           force,
         });
       }
-      // Success — close any warning modal, refresh.
       setWarnings(null);
       setPendingAction(null);
       setPickerOpen(false);
       toastSuccess(action.kind === 'create' ? 'Assigned' : 'Assignment updated');
       if (result.warnings.length > 0) {
-        // Forced with warnings — surface a soft toast so manager knows
         toastSuccess(`Saved with ${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'}`);
       }
       await onChanged();
@@ -116,7 +101,6 @@ export function AssigneeCell({ task, employees, workload, onChanged }: Props) {
 
   async function pickEmployee(userId: string) {
     if (a) {
-      // Existing — change assignee via PATCH
       if (a.userId === userId) {
         setPickerOpen(false);
         return;
@@ -126,7 +110,6 @@ export function AssigneeCell({ task, employees, workload, onChanged }: Props) {
         false,
       );
     } else {
-      // Fresh — POST
       await runMutation(
         {
           kind: 'create',
@@ -197,7 +180,7 @@ export function AssigneeCell({ task, employees, workload, onChanged }: Props) {
             disabled={busy}
             title="Click to change assignee"
           >
-            <span className={styles.avatar}>{initials(assignedUser.fullName)}</span>
+            <Avatar name={assignedUser.fullName} size="xs" />
             <span className={styles.name}>{assignedUser.fullName}</span>
           </button>
           <button
@@ -214,9 +197,9 @@ export function AssigneeCell({ task, employees, workload, onChanged }: Props) {
           >
             {a.lockedByManager ? <Lock size={12} /> : <LockOpen size={12} />}
           </button>
-          <span className={`${styles.sourceBadge} ${styles[`source_${a.source}`]}`}>
+          <Badge variant={a.source === 'MANUAL' ? 'accent' : 'neutral'} size="sm">
             {a.source === 'MANUAL' ? 'manual' : 'auto'}
-          </span>
+          </Badge>
           <input
             type="number"
             min={0.5}
@@ -262,15 +245,17 @@ export function AssigneeCell({ task, employees, workload, onChanged }: Props) {
         onClose={() => setPickerOpen(false)}
         size="md"
       >
-        <PickerBody
-          requiredSkillIds={requiredSkillIds}
-          requiredSkillNames={task.skills.map((s) => s.name)}
-          sortedEmployees={sortedEmployees}
-          loadByUserId={loadByUserId}
-          currentUserId={a?.userId ?? null}
-          onPick={(id) => pickEmployee(id)}
-          busy={busy}
-        />
+        <Modal.Body>
+          <PickerBody
+            requiredSkillIds={requiredSkillIds}
+            requiredSkillNames={task.skills.map((s) => s.name)}
+            sortedEmployees={sortedEmployees}
+            loadByUserId={loadByUserId}
+            currentUserId={a?.userId ?? null}
+            onPick={(id) => pickEmployee(id)}
+            busy={busy}
+          />
+        </Modal.Body>
       </Modal>
 
       <AssignmentWarningsModal
@@ -292,36 +277,27 @@ export function AssigneeCell({ task, employees, workload, onChanged }: Props) {
         open={deleteOpen}
         title="Unassign task"
         onClose={() => setDeleteOpen(false)}
-        footer={
-          <>
-            <button
-              type="button"
-              className={styles.modalCancel}
-              onClick={() => setDeleteOpen(false)}
-              disabled={busy}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className={styles.modalDanger}
-              onClick={handleDelete}
-              disabled={busy}
-            >
-              {busy ? 'Removing…' : 'Unassign'}
-            </button>
-          </>
-        }
+        size="sm"
       >
-        <p>
-          Remove the assignment for <strong>{task.name}</strong>?
-        </p>
-        {a?.lockedByManager && (
-          <p className={styles.muted}>
-            This assignment is locked. The lock prevents the optimizer from changing it; removing
-            here is allowed regardless.
+        <Modal.Body>
+          <p>
+            Remove the assignment for <strong>{task.name}</strong>?
           </p>
-        )}
+          {a?.lockedByManager && (
+            <p className={styles.muted}>
+              This assignment is locked. The lock prevents the optimizer from changing it; removing
+              here is allowed regardless.
+            </p>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setDeleteOpen(false)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete} loading={busy}>
+            Unassign
+          </Button>
+        </Modal.Footer>
       </Modal>
     </div>
   );
@@ -356,9 +332,8 @@ function PickerBody({
 
   return (
     <div>
-      <input
+      <Input
         type="search"
-        className={styles.search}
         placeholder="Search employees…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -390,7 +365,7 @@ function PickerBody({
                 onClick={() => onPick(emp.id)}
                 disabled={busy || isCurrent}
               >
-                <span className={styles.empAvatar}>{initials(emp.fullName)}</span>
+                <Avatar name={emp.fullName} size="sm" />
                 <span className={styles.empMain}>
                   <span className={styles.empName}>
                     {emp.fullName}

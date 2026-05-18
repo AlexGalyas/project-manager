@@ -1,0 +1,128 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+  user-select: none;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+// Sizes — 28 / 32 / 36px heights. Padding scaled.
+.size_sm {
+  height: 28px;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.size_md {
+  height: 32px;
+  padding: 0 var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.size_lg {
+  height: 36px;
+  padding: 0 var(--space-5);
+  font-size: var(--text-md);
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.left,
+.right {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  // Reserve constant width so loading state doesn't jitter layout.
+  min-width: 0;
+}
+
+.left:empty,
+.right:empty {
+  display: none;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.loading .label {
+  opacity: 0.85;
+}
+
+// Variants
+.variant_primary {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border-color: var(--color-accent);
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+  }
+  &:active:not(:disabled) {
+    background: var(--color-accent-active);
+    border-color: var(--color-accent-active);
+  }
+}
+
+.variant_secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+
+  &:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-strong);
+  }
+}
+
+.variant_ghost {
+  background: transparent;
+  color: var(--color-text);
+  border-color: transparent;
+
+  &:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+  }
+}
+
+.variant_outline {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+
+  &:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+  }
+}
+
+.variant_danger {
+  background: var(--color-danger);
+  color: #ffffff;
+  border-color: var(--color-danger);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-danger) 88%, black);
+    border-color: color-mix(in srgb, var(--color-danger) 88%, black);
+  }
+}

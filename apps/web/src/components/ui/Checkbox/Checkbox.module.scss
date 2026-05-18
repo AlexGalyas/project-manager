@@ -1,0 +1,80 @@
+.root {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.box {
+  position: relative;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.input:checked + .indicator,
+.input:indeterminate + .indicator {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-text-inverse);
+}
+
+.input:focus-visible + .indicator {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.input:hover:not(:disabled) + .indicator {
+  border-color: var(--color-accent);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: var(--leading-tight);
+}
+
+.label {
+  color: var(--color-text);
+}
+
+.description {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}

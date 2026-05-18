@@ -1,0 +1,82 @@
+// Color tokens — neutrals + indigo accent + semantic + workload heatmap.
+// Used as CSS custom properties so they participate in `data-theme` swap
+// without re-running SCSS.
+
+:root {
+  /* Neutrals — light theme */
+  --color-bg:              #ffffff;
+  --color-bg-subtle:       #fafafa;
+  --color-bg-muted:        #f4f4f5;
+  --color-bg-hover:        #f4f4f5;
+  --color-surface:         #ffffff;
+  --color-surface-elevated:#ffffff;
+  --color-border:          #e4e4e7;
+  --color-border-strong:   #d4d4d8;
+  --color-text:            #18181b;
+  --color-text-muted:      #71717a;
+  --color-text-subtle:     #a1a1aa;
+  --color-text-inverse:    #ffffff;
+
+  /* Accent — indigo */
+  --color-accent:          #6366f1;
+  --color-accent-hover:    #4f46e5;
+  --color-accent-active:   #4338ca;
+  --color-accent-subtle:   #eef2ff;
+  --color-accent-text:     #4338ca;
+
+  /* Semantic */
+  --color-success:         #10b981;
+  --color-success-bg:      #d1fae5;
+  --color-warning:         #f59e0b;
+  --color-warning-bg:      #fef3c7;
+  --color-danger:          #ef4444;
+  --color-danger-bg:       #fee2e2;
+  --color-info:            #3b82f6;
+  --color-info-bg:         #dbeafe;
+
+  /* Workload heatmap */
+  --color-load-under:      #d1fae5;
+  --color-load-normal:     #e0e7ff;
+  --color-load-near:       #fef3c7;
+  --color-load-over:       #fee2e2;
+
+  /* Focus ring */
+  --color-focus-ring:      rgba(99, 102, 241, 0.5);
+}
+
+[data-theme='dark'] {
+  --color-bg:              #09090b;
+  --color-bg-subtle:       #18181b;
+  --color-bg-muted:        #27272a;
+  --color-bg-hover:        #27272a;
+  --color-surface:         #18181b;
+  --color-surface-elevated:#27272a;
+  --color-border:          #27272a;
+  --color-border-strong:   #3f3f46;
+  --color-text:            #fafafa;
+  --color-text-muted:      #a1a1aa;
+  --color-text-subtle:     #71717a;
+  --color-text-inverse:    #18181b;
+
+  --color-accent:          #818cf8;
+  --color-accent-hover:    #6366f1;
+  --color-accent-active:   #4f46e5;
+  --color-accent-subtle:   #1e1b4b;
+  --color-accent-text:     #a5b4fc;
+
+  --color-success:         #34d399;
+  --color-success-bg:      #064e3b;
+  --color-warning:         #fbbf24;
+  --color-warning-bg:      #78350f;
+  --color-danger:          #f87171;
+  --color-danger-bg:       #7f1d1d;
+  --color-info:            #60a5fa;
+  --color-info-bg:         #1e3a8a;
+
+  --color-load-under:      #064e3b;
+  --color-load-normal:     #312e81;
+  --color-load-near:       #78350f;
+  --color-load-over:       #7f1d1d;
+
+  --color-focus-ring:      rgba(129, 140, 248, 0.55);
+}
