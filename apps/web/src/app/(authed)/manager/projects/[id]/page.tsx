@@ -349,29 +349,31 @@ export default function ProjectDetailPage() {
                           }}
                         />
                       </td>
-                      <td className={styles.actions}>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label="Edit task"
-                          onClick={() => {
-                            setEditingTaskId(t.id);
-                            setCreatingTask(false);
-                          }}
-                        >
-                          <Pencil size={14} />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label="Delete task"
-                          className={styles.dangerBtn}
-                          onClick={() => setDeleteTaskTarget(t)}
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+                      <td>
+                        <div className={styles.actions}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Edit task"
+                            onClick={() => {
+                              setEditingTaskId(t.id);
+                              setCreatingTask(false);
+                            }}
+                          >
+                            <Pencil size={14} />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Delete task"
+                            className={styles.dangerBtn}
+                            onClick={() => setDeleteTaskTarget(t)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ),

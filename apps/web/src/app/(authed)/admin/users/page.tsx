@@ -176,23 +176,25 @@ export default function UsersListPage() {
                           </ul>
                         )}
                       </td>
-                      <td className={styles.actions}>
-                        <Link href={`/admin/users/${u.id}`} aria-label={`Edit ${u.fullName}`}>
-                          <Button variant="ghost" size="sm" aria-label={`Edit ${u.fullName}`}>
-                            <Pencil size={14} />
+                      <td>
+                        <div className={styles.actions}>
+                          <Link href={`/admin/users/${u.id}`} aria-label={`Edit ${u.fullName}`}>
+                            <Button variant="ghost" size="sm" aria-label={`Edit ${u.fullName}`}>
+                              <Pencil size={14} />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConfirmDelete(u)}
+                            disabled={cannotDelete}
+                            title={deleteTitle}
+                            aria-label={deleteTitle}
+                            className={styles.dangerBtn}
+                          >
+                            <Trash2 size={14} />
                           </Button>
-                        </Link>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setConfirmDelete(u)}
-                          disabled={cannotDelete}
-                          title={deleteTitle}
-                          aria-label={deleteTitle}
-                          className={styles.dangerBtn}
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+                        </div>
                       </td>
                     </tr>
                   );
