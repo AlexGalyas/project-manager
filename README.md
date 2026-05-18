@@ -4,7 +4,7 @@ A SaaS-style web app that distributes tasks among employees, balancing workload,
 
 ## Stack
 
-- **Frontend** — Next.js 15 (App Router), React 19, TypeScript, CSS Modules + SCSS, lucide-react, Zustand
+- **Frontend** — Next.js 15 (App Router), React 19, TypeScript, CSS Modules + SCSS, design tokens via CSS custom properties, in-house UI primitives, Geist font (via `next/font`), Zustand, react-hot-toast, recharts, lucide-react. Dark / light / system theme.
 - **Backend** — NestJS 11, Prisma 6, PostgreSQL 16, Passport-JWT
 - **Shared** — TypeScript types and Zod schemas (`packages/shared`)
 - **Tooling** — pnpm workspaces, Docker Compose (Postgres only)

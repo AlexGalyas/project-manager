@@ -92,7 +92,7 @@ Every domain table carries `organizationId` (directly or via parent). The MVP se
   - Success: JSON body of the requested resource
   - Error: `{ "error": { "code": string, "message": string } }` with appropriate HTTP status
 - **Validation**: Zod schemas live in `packages/shared/src/schemas.ts` and are consumed by NestJS pipes on the API side and form code on the web side.
-- **Styling** (web): CSS Modules with SCSS. Global SCSS variables in `apps/web/src/styles/_variables.scss`. No inline styles. No utility CSS frameworks.
+- **Styling** (web): CSS Modules with SCSS. Design tokens are CSS custom properties defined in `apps/web/src/styles/tokens/` (colors, typography, spacing, shadows, radii, transitions, z-index). Dark mode is a `[data-theme='dark']` swap on `<html>`. SCSS files reference tokens via `var(--…)`; legacy `_variables.scss` exists only for unstyled corners and is being phased out. No inline styles. No utility CSS frameworks. No component libraries — see ADR-0007.
 - **Do not introduce new libraries** without updating this file and (if architecturally significant) adding an ADR.
 
 ## 6. Features (post-MVP additions)
@@ -157,6 +157,36 @@ Adding a new warning type: add it to `AssignmentWarningCode` in `packages/shared
 
 See [ADR-0006](docs/adr/0006-assignment-source-and-locking.md) for the model rationale.
 
+### Phase 8 — Design system
+
+The web app uses a hand-rolled design system: design tokens plus a primitive library, no Tailwind and no third-party component kit. Rationale and trade-offs are in [ADR-0007](docs/adr/0007-design-tokens-and-primitives.md).
+
+**Tokens** — `apps/web/src/styles/tokens/`:
+
+- `_colors.scss` — neutrals + indigo accent + semantic (success/warning/danger/info) + workload heatmap. Light values in `:root`, dark overrides in `[data-theme='dark']`.
+- `_typography.scss` — `--font-sans` / `--font-mono` chain Geist (loaded via `next/font` in `apps/web/src/app/layout.tsx`), text scale (xs..3xl), weights, leading.
+- `_spacing.scss`, `_shadows.scss`, `_radii.scss`, `_transitions.scss`, `_z-index.scss`.
+- `_index.scss` — `@forward` barrel; consumed once in `apps/web/src/styles/globals.scss`.
+
+**Primitives** — `apps/web/src/components/ui/` (one folder per primitive, each with `Component.tsx` + `Component.module.scss` + `index.ts`):
+
+`Avatar`, `Badge`, `Button`, `Card` (+ `CardHeader/Body/Footer`), `Checkbox`, `Dropdown`, `EmptyState`, `Field`, `Input`, `Modal` (+ `Modal.Header/Body/Footer`), `SectionHeader`, `Select`, `Skeleton`, `Spinner`, `Switch`, `Tabs`, `Textarea`, `Tooltip`. All re-exported from `@/components/ui`.
+
+**Layout** — `apps/web/src/components/layout/`:
+
+- `AppShell` — CSS-grid wrapper (Header full-width on top, Sidebar left, Main right) used by `(authed)/layout.tsx`.
+- `Header` — sticky bar with brand + user `Dropdown` (theme switch lives in its `menuFooter`).
+- `Sidebar` — role-aware navigation driven by `nav-config.ts`; collapsed state persisted via `sidebar-store`.
+- `PageContainer` — padded main element with optional title/description/actions/breadcrumbs and `size: 'default' | 'narrow' | 'wide'`.
+
+**Theme** — `apps/web/src/stores/theme-store.ts` persists `'light' | 'dark' | 'system'` in `localStorage.workforce.theme`. An inline `<script>` in `app/layout.tsx` resolves the preference before React hydrates so there is no flash.
+
+**Dashboard helper** — `apps/web/src/components/dashboard/StatCard.tsx` (tone-mapped headline metrics with skeleton when `value === null`).
+
+**Toasts** — `react-hot-toast`. `apps/web/src/stores/ui-store.ts` exposes `toastError(err, fallback)` / `toastSuccess(msg)` / `toastInfo(msg)`; the `<Toaster>` is mounted once in `app/layout.tsx` and styled against design tokens.
+
+When adding a new piece of UI: reach for the primitives first, only fall back to bespoke SCSS if no combination works. Use `var(--…)` tokens — never hex values, never SCSS color variables.
+
 ## 7. Caveats
 
 - **JWT in `localStorage`** is acceptable for this MVP demo, NOT for production. XSS leaks the token. Mitigations would be: httpOnly cookies + CSRF protection, or a session-cookie + refresh-token rotation. See `docs/adr/0004-jwt-in-localstorage.md`.
@@ -172,3 +202,4 @@ See [ADR-0006](docs/adr/0006-assignment-source-and-locking.md) for the model rat
 - [0004 — JWT in localStorage for MVP](docs/adr/0004-jwt-in-localstorage.md)
 - [0005 — User & Skill admin endpoints — shape and protections](docs/adr/0005-user-skill-admin-routes.md)
 - [0006 — Assignment source and manager-locking model](docs/adr/0006-assignment-source-and-locking.md)
+- [0007 — Design tokens + in-house primitives over Tailwind/shadcn](docs/adr/0007-design-tokens-and-primitives.md)
