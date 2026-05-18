@@ -1,0 +1,214 @@
+@use '@/styles/variables' as *;
+
+.page {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-text;
+  }
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $space-4;
+}
+
+.heading {
+  margin: 0;
+  font-size: $font-size-2xl;
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.youBadge {
+  color: $color-accent;
+  font-size: $font-size-sm;
+  font-weight: 500;
+}
+
+.subtitle {
+  margin: $space-1 0 0 0;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}
+
+.headerActions {
+  display: flex;
+  gap: $space-2;
+}
+
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: $space-2 $space-3;
+  border: 1px solid $color-border;
+  background: $color-bg;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  color: $color-text;
+
+  &:hover {
+    border-color: $color-text-muted;
+  }
+}
+
+.dangerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: $space-2 $space-3;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  color: #b91c1c;
+
+  &:hover:not(:disabled) {
+    background: #fee2e2;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.error {
+  background: $color-status-over;
+  padding: $space-2 $space-3;
+  border-radius: $radius-sm;
+  color: #842029;
+  font-size: $font-size-sm;
+}
+
+.form {
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-5;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: $font-size-sm;
+}
+
+.label {
+  display: block;
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.field input,
+.field select {
+  padding: $space-2 $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-family: inherit;
+  background: $color-bg;
+  color: $color-text;
+
+  &:focus {
+    outline: none;
+    border-color: $color-accent;
+  }
+
+  &:disabled {
+    background: $color-surface;
+    color: $color-text-muted;
+    cursor: not-allowed;
+  }
+}
+
+.fieldError {
+  color: #b91c1c;
+  font-size: $font-size-xs;
+}
+
+.help {
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+}
+
+.muted {
+  color: $color-text-muted;
+  margin: 0;
+  font-size: $font-size-sm;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-2;
+  margin-top: $space-2;
+}
+
+.cancelBtn,
+.cancelBtnInline {
+  padding: $space-2 $space-4;
+  border: 1px solid $color-border;
+  background: $color-bg;
+  color: $color-text;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $color-text-muted;
+    color: $color-text;
+    text-decoration: none;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.submitBtn {
+  padding: $space-2 $space-4;
+  background: $color-accent;
+  color: #fff;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: $color-accent-hover;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

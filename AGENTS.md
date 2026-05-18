@@ -95,16 +95,47 @@ Every domain table carries `organizationId` (directly or via parent). The MVP se
 - **Styling** (web): CSS Modules with SCSS. Global SCSS variables in `apps/web/src/styles/_variables.scss`. No inline styles. No utility CSS frameworks.
 - **Do not introduce new libraries** without updating this file and (if architecturally significant) adding an ADR.
 
-## 6. Caveats
+## 6. Features (post-MVP additions)
+
+### Phase 7 — Users & Skills CRUD (Admin)
+
+Admin-only management of the organization's members and skill catalog. Routes:
+
+- `GET/POST/PATCH/DELETE /api/users`, `GET /api/users/:id`, `PATCH /api/users/:id/password`, `PUT /api/users/:id/skills`.
+- `GET/POST/PATCH/DELETE /api/skills` (admin-only for the mutating routes; the existing `GET /api/skills` stays open to MANAGER/EMPLOYEE for the multi-select pickers).
+
+Web pages: `/admin/users` (list + delete modal), `/admin/users/new` (create form with all fields + skill multi-select + show/hide password), `/admin/users/[id]` (edit + Change-password modal + Delete-user modal), `/admin/skills` (inline create / rename / delete with per-skill usage counts).
+
+### Business rules to remember
+
+These three rules are enforced in `UsersService` and **must** stay there. The web mirrors them by disabling/hiding controls, but the API is the source of truth.
+
+- **`CANNOT_EDIT_OWN_ROLE`** — `PATCH /users/:id` rejects 403 if `req.user.id === params.id` and the body changes `role`.
+- **`CANNOT_DELETE_SELF`** — `DELETE /users/:id` rejects 403 if `req.user.id === params.id`.
+- **`LAST_ADMIN`** — both `DELETE /users/:id` (when the target is ADMIN) and `PATCH /users/:id` (when an ADMIN is being demoted by someone else) call `ensureNotLastAdmin(organizationId)`. The count must be `> 1` for the action to proceed.
+- **`EMAIL_TAKEN`** — Prisma's `P2002` on the `User.email` unique index is caught and rethrown as `ConflictException` with `error: 'EMAIL_TAKEN'` so the frontend's `friendlyError()` map can show a useful message.
+- **`SKILL_NAME_TAKEN`** — same pattern for `Skill.(organizationId, name)` unique constraint.
+
+Cascade deletes are configured in `prisma/schema.prisma`:
+
+- Deleting a `User` removes their `UserSkill` rows and all their `Assignment` rows.
+- Deleting a `Skill` removes the related `UserSkill` and `TaskSkill` rows.
+
+When extending: add new business rules as private helpers in the service, not inline `if` chains; throw `ForbiddenException`/`ConflictException` with a stable `error` code, and add the friendly message to `apps/web/src/lib/api-errors.ts`.
+
+See [ADR-0005](docs/adr/0005-user-skill-admin-routes.md) for the design of the user/skill admin endpoints, including the dual `PATCH /users/:id` + `PUT /users/:id/skills` shape.
+
+## 7. Caveats
 
 - **JWT in `localStorage`** is acceptable for this MVP demo, NOT for production. XSS leaks the token. Mitigations would be: httpOnly cookies + CSRF protection, or a session-cookie + refresh-token rotation. See `docs/adr/0004-jwt-in-localstorage.md`.
 - **One seeded organization** — the multi-tenant code paths exist but are not exercised. No registration UI.
 - **No automated tests** in the MVP. Jest scaffolding may exist but is not part of any CI requirement.
 - **Greedy optimizer** — produces a feasible assignment, not a globally optimal one. A future strategy (LP, GA, …) can plug in via `OptimizerStrategy`.
 
-## 7. ADR pointers
+## 8. ADR pointers
 
 - [0001 — Monorepo with pnpm workspaces](docs/adr/0001-monorepo-pnpm-workspaces.md)
 - [0002 — Multi-tenant via shared schema + organizationId](docs/adr/0002-multi-tenant-shared-schema.md)
 - [0003 — Greedy algorithm with strategy pattern](docs/adr/0003-greedy-strategy-pattern.md)
 - [0004 — JWT in localStorage for MVP](docs/adr/0004-jwt-in-localstorage.md)
+- [0005 — User & Skill admin endpoints — shape and protections](docs/adr/0005-user-skill-admin-routes.md)

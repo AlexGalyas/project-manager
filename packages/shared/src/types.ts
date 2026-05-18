@@ -27,6 +27,11 @@ export interface LoginResponse {
 export interface SkillDto {
   id: string;
   name: string;
+  /** Optional usage counts; populated by /skills (admin view) for context. */
+  usage?: {
+    users: number;
+    tasks: number;
+  };
 }
 
 export interface UserSummaryDto {

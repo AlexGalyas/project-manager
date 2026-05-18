@@ -1,14 +1,40 @@
 @use '@/styles/variables' as *;
 
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $space-4;
+  margin-bottom: $space-4;
+}
+
 .heading {
-  margin: 0 0 $space-2 0;
+  margin: 0 0 $space-1 0;
   font-size: $font-size-2xl;
 }
 
 .subtitle {
-  margin: 0 0 $space-5 0;
+  margin: 0;
   color: $color-text-muted;
-  max-width: 640px;
+  font-size: $font-size-sm;
+}
+
+.newBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: $space-2 $space-4;
+  background: $color-accent;
+  color: #fff;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  text-decoration: none;
+
+  &:hover {
+    background: $color-accent-hover;
+    color: #fff;
+    text-decoration: none;
+  }
 }
 
 .error {
@@ -57,6 +83,17 @@
   }
 }
 
+.name {
+  font-weight: 500;
+}
+
+.youBadge {
+  margin-left: $space-1;
+  color: $color-accent;
+  font-size: $font-size-xs;
+  font-weight: 500;
+}
+
 .role {
   display: inline-block;
   padding: 2px $space-2;
@@ -97,8 +134,71 @@
   font-size: $font-size-xs;
 }
 
-.level {
-  font-style: normal;
+.actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.iconBtn,
+.iconBtnDanger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid $color-border;
+  background: $color-bg;
+  border-radius: $radius-sm;
   color: $color-text-muted;
-  margin-left: 4px;
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-text;
+    border-color: $color-text-muted;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.iconBtnDanger:hover:not(:disabled) {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.cancelBtn {
+  padding: $space-2 $space-4;
+  border: 1px solid $color-border;
+  background: $color-bg;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.deleteBtn {
+  padding: $space-2 $space-4;
+  background: #b91c1c;
+  color: #fff;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #991b1b;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }

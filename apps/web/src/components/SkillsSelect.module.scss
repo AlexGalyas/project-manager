@@ -1,0 +1,48 @@
+@use '@/styles/variables' as *;
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  max-height: 240px;
+  overflow-y: auto;
+  background: $color-bg;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px $space-2;
+  background: $color-surface;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(37, 99, 235, 0.08);
+  }
+}
+
+.empty {
+  padding: $space-3 $space-4;
+  border: 1px dashed $color-border;
+  border-radius: $radius-md;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}
+
+.link {
+  color: $color-accent;
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
