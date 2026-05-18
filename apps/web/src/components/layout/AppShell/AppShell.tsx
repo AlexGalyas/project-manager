@@ -21,7 +21,7 @@ export function AppShell({ children }: AppShellProps) {
     <div className={clsx(styles.shell, collapsed && styles.shellCollapsed)}>
       <Header />
       <Sidebar />
-      {children}
+      <div className={styles.main}>{children}</div>
     </div>
   );
 }

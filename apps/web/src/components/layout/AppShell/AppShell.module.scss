@@ -13,3 +13,11 @@
 .shellCollapsed {
   grid-template-columns: 64px 1fr;
 }
+
+.main {
+  grid-area: main;
+  min-width: 0;
+  background: var(--color-bg);
+  // Without this, a page that overflows horizontally would push the sidebar.
+  overflow-x: hidden;
+}
