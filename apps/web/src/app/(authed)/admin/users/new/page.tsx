@@ -9,6 +9,15 @@ import { usersApi } from '@/lib/api/users';
 import { skillsApi } from '@/lib/api/skills';
 import { friendlyError } from '@/lib/api-errors';
 import { toastError, toastSuccess } from '@/stores/ui-store';
+import { PageContainer } from '@/components/layout';
+import {
+  Button,
+  Card,
+  Field,
+  Input,
+  SectionHeader,
+  Select,
+} from '@/components/ui';
 import { SkillsSelect } from '@/components/SkillsSelect';
 import styles from './page.module.scss';
 
@@ -68,105 +77,96 @@ export default function NewUserPage() {
   }
 
   return (
-    <section className={styles.page}>
+    <PageContainer
+      title="Create user"
+      description="Add a new admin, manager, or employee. Skills can be added later from the user page."
+      size="narrow"
+    >
       <Link href="/admin/users" className={styles.back}>
         <ChevronLeft size={14} /> Back to users
       </Link>
-      <h1 className={styles.heading}>Create user</h1>
 
-      <form className={styles.form} onSubmit={submit} noValidate>
-        <Field label="Full name" error={fieldErrors.fullName}>
-          <input
+      <Card padding="lg">
+        <form className={styles.form} onSubmit={submit} noValidate>
+          <Input
+            label="Full name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             maxLength={100}
             required
+            error={fieldErrors.fullName}
           />
-        </Field>
 
-        <Field label="Email" error={fieldErrors.email}>
-          <input
+          <Input
+            label="Email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
             required
+            error={fieldErrors.email}
           />
-        </Field>
 
-        <Field label="Password" error={fieldErrors.password}>
-          <div className={styles.passwordRow}>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={8}
-              maxLength={72}
-              autoComplete="new-password"
-              required
-            />
-            <button
-              type="button"
-              className={styles.toggle}
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-            >
-              {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-          </div>
-          <p className={styles.help}>At least 8 characters.</p>
-        </Field>
+          <Input
+            label="Password"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={8}
+            maxLength={72}
+            autoComplete="new-password"
+            required
+            error={fieldErrors.password}
+            helper="At least 8 characters."
+            rightSlot={
+              <button
+                type="button"
+                className={styles.eyeBtn}
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            }
+          />
 
-        <Field label="Role">
-          <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
+          <Select
+            label="Role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as Role)}
+          >
             <option value="EMPLOYEE">Employee</option>
             <option value="MANAGER">Manager</option>
             <option value="ADMIN">Admin</option>
-          </select>
-        </Field>
+          </Select>
 
-        <Field label="Max hours per week" error={fieldErrors.maxHoursPerWeek}>
-          <input
+          <Input
+            label="Max hours per week"
             type="number"
             min={1}
             max={80}
             value={maxHoursPerWeek}
             onChange={(e) => setMaxHoursPerWeek(e.target.value)}
+            error={fieldErrors.maxHoursPerWeek}
+            className={styles.numberInput}
           />
-        </Field>
 
-        <div>
-          <span className={styles.label}>Skills</span>
-          <SkillsSelect allSkills={allSkills} selectedIds={skillIds} onChange={setSkillIds} />
-        </div>
+          <Field label="Skills">
+            <SkillsSelect allSkills={allSkills} selectedIds={skillIds} onChange={setSkillIds} />
+          </Field>
 
-        <div className={styles.actions}>
-          <Link href="/admin/users" className={styles.cancelBtn}>
-            Cancel
-          </Link>
-          <button type="submit" className={styles.submitBtn} disabled={busy}>
-            {busy ? 'Creating…' : 'Create user'}
-          </button>
-        </div>
-      </form>
-    </section>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className={styles.field}>
-      <span className={styles.label}>{label}</span>
-      {children}
-      {error && <span className={styles.fieldError}>{error}</span>}
-    </label>
+          <div className={styles.actions}>
+            <Link href="/admin/users">
+              <Button type="button" variant="secondary">
+                Cancel
+              </Button>
+            </Link>
+            <Button type="submit" loading={busy}>
+              Create user
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </PageContainer>
   );
 }

@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ListTodo, Pencil, Plus, Trash2, X } from 'lucide-react';
 import type {
   ProjectWithTasksDto,
   SkillDto,
@@ -19,12 +19,31 @@ import { usersApi } from '@/lib/api/users';
 import { workloadApi } from '@/lib/api/workload';
 import { useAuthStore } from '@/stores/auth-store';
 import { toastError, toastSuccess } from '@/stores/ui-store';
-import { EmptyState } from '@/components/EmptyState';
-import { Spinner } from '@/components/Spinner';
+import { PageContainer } from '@/components/layout';
+import {
+  Badge,
+  Button,
+  Card,
+  Checkbox,
+  EmptyState,
+  Field,
+  Input,
+  Modal,
+  SectionHeader,
+  Select,
+  Skeleton,
+  Textarea,
+} from '@/components/ui';
 import { AssigneeCell } from '@/components/AssigneeCell';
 import styles from './page.module.scss';
 
 const STATUS_OPTIONS: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE'];
+
+const STATUS_VARIANT: Record<TaskStatus, 'neutral' | 'accent' | 'success'> = {
+  TODO: 'neutral',
+  IN_PROGRESS: 'accent',
+  DONE: 'success',
+};
 
 export default function ProjectDetailPage() {
   const router = useRouter();
@@ -41,6 +60,9 @@ export default function ProjectDetailPage() {
   const [editingProject, setEditingProject] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [deleteProjectOpen, setDeleteProjectOpen] = useState(false);
+  const [deleteTaskTarget, setDeleteTaskTarget] = useState<TaskDto | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -75,228 +97,347 @@ export default function ProjectDetailPage() {
 
   async function handleDeleteProject() {
     if (!project) return;
-    if (!confirm(`Delete project "${project.name}"? This removes all its tasks too.`)) return;
+    setDeleteBusy(true);
     try {
       await projectsApi.remove(project.id);
       toastSuccess(`Project "${project.name}" deleted`);
       router.push('/manager/projects');
     } catch (err) {
       toastError(err, 'Delete failed');
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
-  async function handleDeleteTask(id: string, name: string) {
-    if (!confirm(`Delete task "${name}"?`)) return;
+  async function handleDeleteTask() {
+    if (!deleteTaskTarget) return;
+    setDeleteBusy(true);
     try {
-      await tasksApi.remove(id);
-      toastSuccess(`Task "${name}" deleted`);
+      await tasksApi.remove(deleteTaskTarget.id);
+      toastSuccess(`Task "${deleteTaskTarget.name}" deleted`);
+      setDeleteTaskTarget(null);
       await refresh();
     } catch (err) {
       toastError(err, 'Delete failed');
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
   if (loadError && !project) {
     return (
-      <section>
+      <PageContainer>
         <Link href="/manager/projects" className={styles.back}>
-          <ChevronLeft size={14} /> Back
+          <ChevronLeft size={14} /> Back to projects
         </Link>
         <p className={styles.error}>{loadError}</p>
-      </section>
+      </PageContainer>
     );
   }
 
   if (!project) {
-    return <Spinner label="Loading project" />;
+    return (
+      <PageContainer>
+        <Link href="/manager/projects" className={styles.back}>
+          <ChevronLeft size={14} /> Back to projects
+        </Link>
+        <Card padding="lg">
+          <div className={styles.skeletonHeader}>
+            <Skeleton width={260} height={28} />
+            <Skeleton width={500} height={16} />
+            <Skeleton width={180} height={14} />
+          </div>
+        </Card>
+        <Card padding="none">
+          <div className={styles.skeletonStack}>
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className={styles.skeletonRow}>
+                <Skeleton width="100%" height={16} />
+              </div>
+            ))}
+          </div>
+        </Card>
+      </PageContainer>
+    );
   }
 
   return (
-    <section className={styles.page}>
+    <PageContainer size="wide">
       <Link href="/manager/projects" className={styles.back}>
         <ChevronLeft size={14} /> Back to projects
       </Link>
 
-      {editingProject ? (
-        <ProjectEditForm
-          project={project}
-          onCancel={() => setEditingProject(false)}
-          onSaved={async () => {
-            setEditingProject(false);
-            toastSuccess('Project updated');
-            await refresh();
-          }}
-        />
-      ) : (
-        <div className={styles.header}>
-          <div>
-            <h1 className={styles.heading}>{project.name}</h1>
-            <p className={styles.subtitle}>
-              {project.description ?? <span className={styles.muted}>(no description)</span>}
-            </p>
-            <p className={styles.metaRow}>
-              <span className={`${styles.prio} ${styles[`prio_${project.priority}`]}`}>
-                Priority {project.priority}
-              </span>
-              <span className={styles.muted}>· {project.taskCount} tasks</span>
-            </p>
-          </div>
-          <div className={styles.headerActions}>
-            <button
-              type="button"
-              className={styles.iconBtn}
-              onClick={() => setEditingProject(true)}
-              aria-label="Edit project"
-            >
-              <Pencil size={14} /> Edit
-            </button>
-            {isAdmin && (
-              <button type="button" className={styles.deleteBtn} onClick={handleDeleteProject}>
-                <Trash2 size={14} /> Delete project
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div className={styles.tasksHeader}>
-        <h2 className={styles.subheading}>Tasks</h2>
-        <button
-          type="button"
-          className={styles.newBtn}
-          onClick={() => {
-            setCreatingTask((v) => !v);
-            setEditingTaskId(null);
-          }}
-        >
-          <Plus size={14} /> {creatingTask ? 'Cancel' : 'New task'}
-        </button>
-      </div>
-
-      {creatingTask && (
-        <TaskCreateForm
-          skills={skills}
-          existingTasks={project.tasks}
-          onCancel={() => setCreatingTask(false)}
-          onCreated={async () => {
-            setCreatingTask(false);
-            toastSuccess('Task created');
-            await refresh();
-          }}
-          projectId={project.id}
-        />
-      )}
-
-      {project.tasks.length === 0 && !creatingTask && (
-        <EmptyState
-          title="No tasks in this project"
-          description="Click 'New task' to add the first one."
-        />
-      )}
-
-      {project.tasks.length > 0 && (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Hours</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Skills</th>
-                <th>Deps</th>
-                <th>Deadline</th>
-                <th>Assignee</th>
-                <th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {project.tasks.map((t) =>
-                editingTaskId === t.id ? (
-                  <tr key={t.id}>
-                    <td colSpan={9}>
-                      <TaskEditForm
-                        task={t}
-                        skills={skills}
-                        siblings={project.tasks.filter((other) => other.id !== t.id)}
-                        onCancel={() => setEditingTaskId(null)}
-                        onSaved={async () => {
-                          setEditingTaskId(null);
-                          toastSuccess('Task updated');
-                          await refresh();
-                        }}
-                      />
-                    </td>
-                  </tr>
-                ) : (
-                  <tr key={t.id}>
-                    <td className={styles.taskName}>{t.name}</td>
-                    <td>{t.durationHours}</td>
-                    <td>
-                      <span className={`${styles.prio} ${styles[`prio_${t.priority}`]}`}>
-                        P{t.priority}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`${styles.status} ${styles[`status_${t.status}`]}`}>
-                        {t.status.toLowerCase().replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td>
-                      {t.skills.length === 0 ? (
-                        <span className={styles.muted}>—</span>
-                      ) : (
-                        <ul className={styles.skillsList}>
-                          {t.skills.map((s) => (
-                            <li key={s.skillId}>{s.name}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
-                    <td>{t.dependsOnIds.length || <span className={styles.muted}>—</span>}</td>
-                    <td className={styles.muted}>
-                      {t.deadline ? new Date(t.deadline).toLocaleDateString() : '—'}
-                    </td>
-                    <td>
-                      <AssigneeCell
-                        task={t}
-                        employees={employees}
-                        workload={workload}
-                        onChanged={async () => {
-                          await refresh();
-                          await refreshAssignmentContext();
-                        }}
-                      />
-                    </td>
-                    <td className={styles.actions}>
-                      <button
-                        type="button"
-                        className={styles.iconBtnSmall}
-                        onClick={() => {
-                          setEditingTaskId(t.id);
-                          setCreatingTask(false);
-                        }}
-                        aria-label="Edit task"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.iconBtnSmall}
-                        onClick={() => handleDeleteTask(t.id, t.name)}
-                        aria-label="Delete task"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ),
+      <Card padding="lg">
+        {editingProject ? (
+          <ProjectEditForm
+            project={project}
+            onCancel={() => setEditingProject(false)}
+            onSaved={async () => {
+              setEditingProject(false);
+              toastSuccess('Project updated');
+              await refresh();
+            }}
+          />
+        ) : (
+          <div className={styles.headerRow}>
+            <div className={styles.headerText}>
+              <h1 className={styles.heading}>{project.name}</h1>
+              <p className={styles.subtitle}>
+                {project.description ?? (
+                  <span className={styles.muted}>(no description)</span>
+                )}
+              </p>
+              <div className={styles.metaRow}>
+                <Badge variant="accent" size="sm">
+                  Priority {project.priority}
+                </Badge>
+                <span className={styles.muted}>·</span>
+                <span className={styles.muted}>
+                  {project.taskCount} task{project.taskCount === 1 ? '' : 's'}
+                </span>
+              </div>
+            </div>
+            <div className={styles.headerActions}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                leftIcon={<Pencil size={14} />}
+                onClick={() => setEditingProject(true)}
+              >
+                Edit
+              </Button>
+              {isAdmin && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<Trash2 size={14} />}
+                  onClick={() => setDeleteProjectOpen(true)}
+                  className={styles.dangerBtn}
+                >
+                  Delete
+                </Button>
               )}
-            </tbody>
-          </table>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <Card padding="none">
+        <div className={styles.tasksHeader}>
+          <SectionHeader
+            as="h2"
+            title="Tasks"
+            description="Click an assignee to change it, lock to keep the optimizer from moving them."
+            action={
+              <Button
+                type="button"
+                size="sm"
+                variant={creatingTask ? 'secondary' : 'primary'}
+                leftIcon={creatingTask ? <X size={14} /> : <Plus size={14} />}
+                onClick={() => {
+                  setCreatingTask((v) => !v);
+                  setEditingTaskId(null);
+                }}
+              >
+                {creatingTask ? 'Cancel' : 'New task'}
+              </Button>
+            }
+          />
         </div>
-      )}
-    </section>
+
+        {creatingTask && (
+          <div className={styles.formWrap}>
+            <TaskCreateForm
+              skills={skills}
+              existingTasks={project.tasks}
+              onCancel={() => setCreatingTask(false)}
+              onCreated={async () => {
+                setCreatingTask(false);
+                toastSuccess('Task created');
+                await refresh();
+              }}
+              projectId={project.id}
+            />
+          </div>
+        )}
+
+        {project.tasks.length === 0 && !creatingTask ? (
+          <EmptyState
+            icon={<ListTodo size={20} />}
+            title="No tasks in this project"
+            description="Click 'New task' to add the first one."
+          />
+        ) : project.tasks.length > 0 ? (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Hours</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Skills</th>
+                  <th>Deps</th>
+                  <th>Deadline</th>
+                  <th>Assignee</th>
+                  <th aria-label="Actions" />
+                </tr>
+              </thead>
+              <tbody>
+                {project.tasks.map((t) =>
+                  editingTaskId === t.id ? (
+                    <tr key={t.id} className={styles.editingRow}>
+                      <td colSpan={9}>
+                        <TaskEditForm
+                          task={t}
+                          skills={skills}
+                          siblings={project.tasks.filter((other) => other.id !== t.id)}
+                          onCancel={() => setEditingTaskId(null)}
+                          onSaved={async () => {
+                            setEditingTaskId(null);
+                            toastSuccess('Task updated');
+                            await refresh();
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={t.id}>
+                      <td className={styles.taskName}>{t.name}</td>
+                      <td className={styles.hours}>{t.durationHours}h</td>
+                      <td>
+                        <Badge variant="neutral" size="sm">
+                          P{t.priority}
+                        </Badge>
+                      </td>
+                      <td>
+                        <Badge variant={STATUS_VARIANT[t.status]} size="sm">
+                          {t.status.toLowerCase().replace('_', ' ')}
+                        </Badge>
+                      </td>
+                      <td>
+                        {t.skills.length === 0 ? (
+                          <span className={styles.muted}>—</span>
+                        ) : (
+                          <ul className={styles.skillChips}>
+                            {t.skills.map((s) => (
+                              <li key={s.skillId}>
+                                <Badge variant="neutral" size="sm">
+                                  {s.name}
+                                </Badge>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                      <td className={styles.muted}>
+                        {t.dependsOnIds.length || <span className={styles.muted}>—</span>}
+                      </td>
+                      <td className={styles.muted}>
+                        {t.deadline ? new Date(t.deadline).toLocaleDateString() : '—'}
+                      </td>
+                      <td>
+                        <AssigneeCell
+                          task={t}
+                          employees={employees}
+                          workload={workload}
+                          onChanged={async () => {
+                            await refresh();
+                            await refreshAssignmentContext();
+                          }}
+                        />
+                      </td>
+                      <td className={styles.actions}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Edit task"
+                          onClick={() => {
+                            setEditingTaskId(t.id);
+                            setCreatingTask(false);
+                          }}
+                        >
+                          <Pencil size={14} />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Delete task"
+                          className={styles.dangerBtn}
+                          onClick={() => setDeleteTaskTarget(t)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </Card>
+
+      <Modal
+        open={deleteProjectOpen}
+        onClose={() => setDeleteProjectOpen(false)}
+        title="Delete project"
+        size="sm"
+      >
+        <Modal.Body>
+          <p>
+            Delete <strong>{project.name}</strong>? This removes all{' '}
+            <strong>{project.taskCount}</strong> task
+            {project.taskCount === 1 ? '' : 's'} and their assignments too.
+          </p>
+          <p className={styles.muted}>This action cannot be undone.</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setDeleteProjectOpen(false)}
+            disabled={deleteBusy}
+          >
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDeleteProject} loading={deleteBusy}>
+            Delete project
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        open={deleteTaskTarget !== null}
+        onClose={() => setDeleteTaskTarget(null)}
+        title="Delete task"
+        size="sm"
+      >
+        <Modal.Body>
+          {deleteTaskTarget && (
+            <p>
+              Delete <strong>{deleteTaskTarget.name}</strong>? This also removes its assignment if
+              any.
+            </p>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setDeleteTaskTarget(null)}
+            disabled={deleteBusy}
+          >
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDeleteTask} loading={deleteBusy}>
+            Delete task
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </PageContainer>
   );
 }
 
@@ -332,36 +473,35 @@ function ProjectEditForm({
   }
 
   return (
-    <form className={styles.editCard} onSubmit={submit}>
-      <label className={styles.field}>
-        <span>Name</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} required />
-      </label>
-      <label className={styles.field}>
-        <span>Description</span>
-        <textarea
-          rows={2}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </label>
-      <label className={styles.field}>
-        <span>Priority (1–5)</span>
-        <input
-          type="number"
-          min={1}
-          max={5}
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-        />
-      </label>
+    <form className={styles.editForm} onSubmit={submit}>
+      <Input
+        label="Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        required
+      />
+      <Textarea
+        label="Description"
+        rows={2}
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+      />
+      <Input
+        label="Priority (1–5)"
+        type="number"
+        min={1}
+        max={5}
+        value={priority}
+        onChange={(e) => setPriority(e.target.value)}
+        className={styles.priorityInput}
+      />
       <div className={styles.formActions}>
-        <button type="button" className={styles.cancelBtn} onClick={onCancel}>
+        <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
-        <button type="submit" className={styles.submitBtn} disabled={busy}>
-          {busy ? 'Saving…' : 'Save'}
-        </button>
+        </Button>
+        <Button type="submit" loading={busy}>
+          Save
+        </Button>
       </div>
     </form>
   );
@@ -410,47 +550,47 @@ function TaskCreateForm({
   }
 
   return (
-    <form className={styles.editCard} onSubmit={submit}>
+    <form className={styles.editForm} onSubmit={submit}>
       <div className={styles.formGrid}>
-        <label className={styles.field}>
-          <span>Name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
-        </label>
-        <label className={styles.field}>
-          <span>Hours</span>
-          <input
-            type="number"
-            step={0.5}
-            min={0.5}
-            value={durationHours}
-            onChange={(e) => setDurationHours(e.target.value)}
-            required
-          />
-        </label>
-        <label className={styles.field}>
-          <span>Priority (1–5)</span>
-          <input
-            type="number"
-            min={1}
-            max={5}
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-          />
-        </label>
-        <label className={styles.field}>
-          <span>Deadline</span>
-          <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-        </label>
+        <Input
+          label="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+        <Input
+          label="Hours"
+          type="number"
+          step={0.5}
+          min={0.5}
+          value={durationHours}
+          onChange={(e) => setDurationHours(e.target.value)}
+          required
+        />
+        <Input
+          label="Priority (1–5)"
+          type="number"
+          min={1}
+          max={5}
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+        />
+        <Input
+          label="Deadline"
+          type="date"
+          value={deadline}
+          onChange={(e) => setDeadline(e.target.value)}
+        />
       </div>
       <SkillsMultiSelect skills={skills} value={skillIds} onChange={setSkillIds} />
       <DepsMultiSelect tasks={existingTasks} value={dependsOnIds} onChange={setDependsOnIds} />
       <div className={styles.formActions}>
-        <button type="button" className={styles.cancelBtn} onClick={onCancel}>
+        <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
-        <button type="submit" className={styles.submitBtn} disabled={busy}>
-          {busy ? 'Creating…' : 'Create task'}
-        </button>
+        </Button>
+        <Button type="submit" loading={busy}>
+          Create task
+        </Button>
       </div>
     </form>
   );
@@ -500,56 +640,57 @@ function TaskEditForm({
   }
 
   return (
-    <form className={styles.editCard} onSubmit={submit}>
+    <form className={styles.editForm} onSubmit={submit}>
       <div className={styles.formGrid}>
-        <label className={styles.field}>
-          <span>Name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
-        </label>
-        <label className={styles.field}>
-          <span>Hours</span>
-          <input
-            type="number"
-            step={0.5}
-            min={0.5}
-            value={durationHours}
-            onChange={(e) => setDurationHours(e.target.value)}
-          />
-        </label>
-        <label className={styles.field}>
-          <span>Priority (1–5)</span>
-          <input
-            type="number"
-            min={1}
-            max={5}
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-          />
-        </label>
-        <label className={styles.field}>
-          <span>Status</span>
-          <select value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)}>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s.toLowerCase().replace('_', ' ')}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={styles.field}>
-          <span>Deadline</span>
-          <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-        </label>
+        <Input
+          label="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+        <Input
+          label="Hours"
+          type="number"
+          step={0.5}
+          min={0.5}
+          value={durationHours}
+          onChange={(e) => setDurationHours(e.target.value)}
+        />
+        <Input
+          label="Priority (1–5)"
+          type="number"
+          min={1}
+          max={5}
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+        />
+        <Select
+          label="Status"
+          value={status}
+          onChange={(e) => setStatus(e.target.value as TaskStatus)}
+        >
+          {STATUS_OPTIONS.map((s) => (
+            <option key={s} value={s}>
+              {s.toLowerCase().replace('_', ' ')}
+            </option>
+          ))}
+        </Select>
+        <Input
+          label="Deadline"
+          type="date"
+          value={deadline}
+          onChange={(e) => setDeadline(e.target.value)}
+        />
       </div>
       <SkillsMultiSelect skills={skills} value={skillIds} onChange={setSkillIds} />
       <DepsMultiSelect tasks={siblings} value={dependsOnIds} onChange={setDependsOnIds} />
       <div className={styles.formActions}>
-        <button type="button" className={styles.cancelBtn} onClick={onCancel}>
-          <X size={14} /> Cancel
-        </button>
-        <button type="submit" className={styles.submitBtn} disabled={busy}>
-          {busy ? 'Saving…' : 'Save'}
-        </button>
+        <Button type="button" variant="secondary" leftIcon={<X size={14} />} onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" loading={busy}>
+          Save
+        </Button>
       </div>
     </form>
   );
@@ -569,27 +710,23 @@ function SkillsMultiSelect({
     else onChange([...value, id]);
   }
   return (
-    <fieldset className={styles.checkGroup}>
-      <legend>Required skills</legend>
+    <Field label="Required skills">
       {skills.length === 0 ? (
         <span className={styles.muted}>(loading skills…)</span>
       ) : (
         <ul className={styles.checkList}>
           {skills.map((s) => (
             <li key={s.id}>
-              <label className={styles.checkLabel}>
-                <input
-                  type="checkbox"
-                  checked={value.includes(s.id)}
-                  onChange={() => toggle(s.id)}
-                />
-                {s.name}
-              </label>
+              <Checkbox
+                checked={value.includes(s.id)}
+                onChange={() => toggle(s.id)}
+                label={s.name}
+              />
             </li>
           ))}
         </ul>
       )}
-    </fieldset>
+    </Field>
   );
 }
 
@@ -607,26 +744,22 @@ function DepsMultiSelect({
     else onChange([...value, id]);
   }
   return (
-    <fieldset className={styles.checkGroup}>
-      <legend>Depends on</legend>
+    <Field label="Depends on">
       {tasks.length === 0 ? (
         <span className={styles.muted}>(no other tasks in this project yet)</span>
       ) : (
         <ul className={styles.checkList}>
           {tasks.map((t) => (
             <li key={t.id}>
-              <label className={styles.checkLabel}>
-                <input
-                  type="checkbox"
-                  checked={value.includes(t.id)}
-                  onChange={() => toggle(t.id)}
-                />
-                {t.name}
-              </label>
+              <Checkbox
+                checked={value.includes(t.id)}
+                onChange={() => toggle(t.id)}
+                label={t.name}
+              />
             </li>
           ))}
         </ul>
       )}
-    </fieldset>
+    </Field>
   );
 }
