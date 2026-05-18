@@ -2,15 +2,22 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2, Users as UsersIcon } from 'lucide-react';
 import type { Role, UserSummaryDto } from '@workforce/shared';
 import { usersApi } from '@/lib/api/users';
 import { friendlyError } from '@/lib/api-errors';
 import { useAuthStore } from '@/stores/auth-store';
 import { toastError, toastSuccess } from '@/stores/ui-store';
-import { EmptyState } from '@/components/EmptyState';
-import { Spinner } from '@/components/Spinner';
-import { Modal } from '@/components/Modal';
+import { PageContainer } from '@/components/layout';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Modal,
+  Skeleton,
+} from '@/components/ui';
 import styles from './page.module.scss';
 
 function isSoleAdmin(user: UserSummaryDto, all: UserSummaryDto[]): boolean {
@@ -18,10 +25,10 @@ function isSoleAdmin(user: UserSummaryDto, all: UserSummaryDto[]): boolean {
   return all.filter((u) => u.role === 'ADMIN').length <= 1;
 }
 
-const ROLE_LABEL: Record<Role, string> = {
-  ADMIN: 'admin',
-  MANAGER: 'manager',
-  EMPLOYEE: 'employee',
+const ROLE_VARIANT: Record<Role, 'accent' | 'info' | 'neutral'> = {
+  ADMIN: 'accent',
+  MANAGER: 'info',
+  EMPLOYEE: 'neutral',
 };
 
 export default function UsersListPage() {
@@ -66,148 +73,164 @@ export default function UsersListPage() {
     }
   }
 
-  return (
-    <section>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.heading}>Users</h1>
-          <p className={styles.subtitle}>
-            {users
-              ? `${users.length} user${users.length === 1 ? '' : 's'} · ${adminCount} admin${adminCount === 1 ? '' : 's'}`
-              : loadError
-                ? 'Could not load users'
-                : 'Loading…'}
-          </p>
-        </div>
-        <Link href="/admin/users/new" className={styles.newBtn}>
-          <Plus size={16} /> Create user
-        </Link>
-      </div>
+  const description = users
+    ? `${users.length} user${users.length === 1 ? '' : 's'} · ${adminCount} admin${adminCount === 1 ? '' : 's'}`
+    : loadError
+      ? 'Could not load users'
+      : 'Loading…';
 
+  return (
+    <PageContainer
+      title="Users"
+      description={description}
+      actions={
+        <Link href="/admin/users/new" className={styles.cta}>
+          <Button leftIcon={<Plus size={14} />}>Create user</Button>
+        </Link>
+      }
+    >
       {loadError && <p className={styles.error}>{loadError}</p>}
 
-      {!users && !loadError && <Spinner />}
+      <Card padding="none">
+        {!users && !loadError && (
+          <div className={styles.skeletonStack}>
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className={styles.skeletonRow}>
+                <Skeleton circle width={28} height={28} />
+                <Skeleton width={180} height={14} />
+                <Skeleton width={140} height={14} />
+                <Skeleton width={60} height={14} />
+                <Skeleton width={120} height={14} />
+              </div>
+            ))}
+          </div>
+        )}
 
-      {users && users.length === 0 && (
-        <EmptyState
-          title="No users"
-          description="Seed the database or click Create user to add one."
-        />
-      )}
+        {users && users.length === 0 && (
+          <EmptyState
+            icon={<UsersIcon size={20} />}
+            title="No users"
+            description="Seed the database or click Create user to add one."
+            action={
+              <Link href="/admin/users/new">
+                <Button leftIcon={<Plus size={14} />}>Create user</Button>
+              </Link>
+            }
+          />
+        )}
 
-      {users && users.length > 0 && (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Max h/wk</th>
-                <th>Skills</th>
-                <th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => {
-                const isSelf = me?.id === u.id;
-                const lastAdmin = isSoleAdmin(u, users);
-                const cannotDelete = isSelf || lastAdmin;
-                const deleteTitle = isSelf
-                  ? 'You cannot delete yourself'
-                  : lastAdmin
-                    ? 'Cannot delete the last administrator'
-                    : `Delete ${u.fullName}`;
-                return (
-                  <tr key={u.id}>
-                    <td>
-                      <span className={styles.name}>{u.fullName}</span>
-                      {isSelf && <span className={styles.youBadge}>(you)</span>}
-                    </td>
-                    <td className={styles.muted}>{u.email}</td>
-                    <td>
-                      <span className={`${styles.role} ${styles[`role_${u.role}`]}`}>
-                        {ROLE_LABEL[u.role]}
-                      </span>
-                    </td>
-                    <td>{u.maxHoursPerWeek}</td>
-                    <td>
-                      {u.skills.length === 0 ? (
-                        <span className={styles.muted}>—</span>
-                      ) : (
-                        <ul className={styles.skills}>
-                          {u.skills.map((s) => (
-                            <li key={s.skillId}>
-                              <span className={styles.skill}>{s.name}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
-                    <td className={styles.actions}>
-                      <Link
-                        href={`/admin/users/${u.id}`}
-                        className={styles.iconBtn}
-                        aria-label={`Edit ${u.fullName}`}
-                      >
-                        <Pencil size={14} />
-                      </Link>
-                      <button
-                        type="button"
-                        className={styles.iconBtnDanger}
-                        onClick={() => setConfirmDelete(u)}
-                        disabled={cannotDelete}
-                        title={deleteTitle}
-                        aria-label={deleteTitle}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {users && users.length > 0 && (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Max h/wk</th>
+                  <th>Skills</th>
+                  <th aria-label="Actions" />
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => {
+                  const isSelf = me?.id === u.id;
+                  const lastAdmin = isSoleAdmin(u, users);
+                  const cannotDelete = isSelf || lastAdmin;
+                  const deleteTitle = isSelf
+                    ? 'You cannot delete yourself'
+                    : lastAdmin
+                      ? 'Cannot delete the last administrator'
+                      : `Delete ${u.fullName}`;
+                  return (
+                    <tr key={u.id}>
+                      <td>
+                        <span className={styles.identity}>
+                          <Avatar name={u.fullName} size="sm" />
+                          <span className={styles.identityText}>
+                            <span className={styles.name}>
+                              {u.fullName}
+                              {isSelf && <span className={styles.youBadge}>(you)</span>}
+                            </span>
+                            <span className={styles.email}>{u.email}</span>
+                          </span>
+                        </span>
+                      </td>
+                      <td>
+                        <Badge variant={ROLE_VARIANT[u.role]} size="sm">
+                          {u.role.toLowerCase()}
+                        </Badge>
+                      </td>
+                      <td className={styles.hours}>{u.maxHoursPerWeek}h</td>
+                      <td>
+                        {u.skills.length === 0 ? (
+                          <span className={styles.muted}>—</span>
+                        ) : (
+                          <ul className={styles.skillChips}>
+                            {u.skills.map((s) => (
+                              <li key={s.skillId}>
+                                <Badge variant="neutral" size="sm">
+                                  {s.name}
+                                </Badge>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                      <td className={styles.actions}>
+                        <Link href={`/admin/users/${u.id}`} aria-label={`Edit ${u.fullName}`}>
+                          <Button variant="ghost" size="sm" aria-label={`Edit ${u.fullName}`}>
+                            <Pencil size={14} />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setConfirmDelete(u)}
+                          disabled={cannotDelete}
+                          title={deleteTitle}
+                          aria-label={deleteTitle}
+                          className={styles.dangerBtn}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
       <Modal
         open={confirmDelete !== null}
-        title="Delete user"
         onClose={() => setConfirmDelete(null)}
-        footer={
-          <>
-            <button
-              type="button"
-              className={styles.cancelBtn}
-              onClick={() => setConfirmDelete(null)}
-              disabled={deleteBusy}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className={styles.deleteBtn}
-              onClick={handleDelete}
-              disabled={deleteBusy}
-            >
-              {deleteBusy ? 'Deleting…' : 'Delete user'}
-            </button>
-          </>
-        }
+        title="Delete user"
+        size="sm"
       >
-        {confirmDelete && (
-          <>
-            <p>
-              Delete <strong>{confirmDelete.fullName}</strong> ({confirmDelete.email})?
-            </p>
-            <p className={styles.muted}>
-              All assignments owned by this user will be removed automatically. Projects and tasks
-              are not affected.
-            </p>
-          </>
-        )}
+        <Modal.Body>
+          {confirmDelete && (
+            <>
+              <p>
+                Delete <strong>{confirmDelete.fullName}</strong> ({confirmDelete.email})?
+              </p>
+              <p className={styles.muted}>
+                All assignments owned by this user will be removed automatically. Projects and
+                tasks are not affected.
+              </p>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setConfirmDelete(null)} disabled={deleteBusy}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete} loading={deleteBusy}>
+            Delete user
+          </Button>
+        </Modal.Footer>
       </Modal>
-    </section>
+    </PageContainer>
   );
 }

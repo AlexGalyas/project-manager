@@ -1,79 +1,38 @@
-@use '@/styles/variables' as *;
-
-.header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: $space-4;
-  margin-bottom: $space-4;
-}
-
-.heading {
-  margin: 0 0 $space-1 0;
-  font-size: $font-size-2xl;
-}
-
-.subtitle {
-  margin: 0;
-  color: $color-text-muted;
-  font-size: $font-size-sm;
-}
-
-.newBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: $space-2 $space-4;
-  background: $color-accent;
-  color: #fff;
-  border-radius: $radius-md;
-  font-size: $font-size-sm;
+.cta {
   text-decoration: none;
-
-  &:hover {
-    background: $color-accent-hover;
-    color: #fff;
-    text-decoration: none;
-  }
 }
 
 .error {
-  background: $color-status-over;
-  padding: $space-2 $space-3;
-  border-radius: $radius-sm;
-  color: #842029;
-  font-size: $font-size-sm;
-}
-
-.muted {
-  color: $color-text-muted;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
 }
 
 .tableWrap {
-  background: $color-bg;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: $font-size-sm;
+  font-size: var(--text-sm);
 
   th,
   td {
     text-align: left;
-    padding: $space-3 $space-4;
-    border-bottom: 1px solid $color-border;
-    vertical-align: top;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
   }
 
   thead th {
-    background: $color-surface;
-    font-weight: 600;
-    color: $color-text-muted;
-    font-size: $font-size-xs;
+    background: var(--color-bg-subtle);
+    font-weight: var(--weight-medium);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -81,57 +40,65 @@
   tbody tr:last-child td {
     border-bottom: none;
   }
+
+  tbody tr {
+    transition: background-color var(--duration-fast) var(--ease-out);
+  }
+
+  tbody tr:hover {
+    background: var(--color-bg-subtle);
+  }
+}
+
+.identity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.identityText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .name {
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.email {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
 }
 
 .youBadge {
-  margin-left: $space-1;
-  color: $color-accent;
-  font-size: $font-size-xs;
-  font-weight: 500;
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
 }
 
-.role {
-  display: inline-block;
-  padding: 2px $space-2;
-  border-radius: $radius-sm;
-  font-size: $font-size-xs;
-  text-transform: capitalize;
-  font-weight: 500;
+.hours {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
 }
 
-.role_ADMIN {
-  background: rgba(37, 99, 235, 0.1);
-  color: $color-accent;
+.muted {
+  color: var(--color-text-muted);
 }
 
-.role_MANAGER {
-  background: rgba(20, 184, 166, 0.12);
-  color: #0f766e;
-}
-
-.role_EMPLOYEE {
-  background: $color-surface;
-  color: $color-text;
-}
-
-.skills {
+.skillChips {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: $space-1;
-}
-
-.skill {
-  background: $color-surface;
-  padding: 2px $space-2;
-  border-radius: $radius-sm;
-  font-size: $font-size-xs;
+  gap: 4px;
 }
 
 .actions {
@@ -140,65 +107,29 @@
   justify-content: flex-end;
 }
 
-.iconBtn,
-.iconBtnDanger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid $color-border;
-  background: $color-bg;
-  border-radius: $radius-sm;
-  color: $color-text-muted;
-  cursor: pointer;
-  text-decoration: none;
-
-  &:hover {
-    color: $color-text;
-    border-color: $color-text-muted;
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-}
-
-.iconBtnDanger:hover:not(:disabled) {
-  color: #b91c1c;
-  border-color: #fecaca;
-  background: #fef2f2;
-}
-
-.cancelBtn {
-  padding: $space-2 $space-4;
-  border: 1px solid $color-border;
-  background: $color-bg;
-  border-radius: $radius-md;
-  font-size: $font-size-sm;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.6;
-  }
-}
-
-.deleteBtn {
-  padding: $space-2 $space-4;
-  background: #b91c1c;
-  color: #fff;
-  border: none;
-  border-radius: $radius-md;
-  font-size: $font-size-sm;
-  cursor: pointer;
+.dangerBtn {
+  color: var(--color-text-muted);
 
   &:hover:not(:disabled) {
-    background: #991b1b;
+    color: var(--color-danger);
+    background: var(--color-danger-bg);
   }
+}
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+}
+
+.skeletonRow {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr 80px 1fr;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+
+  &:last-child {
+    border-bottom: none;
   }
 }
