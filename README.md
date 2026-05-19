@@ -53,8 +53,8 @@ After `pnpm db:seed`:
 | Role | Email | Password |
 | --- | --- | --- |
 | Admin | `admin@demo.local` | `password` |
-| Manager | `manager1@demo.local`, `manager2@demo.local` | `password` |
-| Employee | `emp1@demo.local` … `emp15@demo.local` | `password` |
+| Manager | `manager1@demo.local` | `password` |
+| Employee | `emp1@demo.local` … `emp5@demo.local` | `password` |
 
 ## Common commands
 

@@ -16,10 +16,9 @@ export class WorkloadService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listForOrg(organizationId: string): Promise<WorkloadEntryDto[]> {
-    // Sum planned hours per employee.
     const employees = await this.prisma.user.findMany({
       where: { organizationId, role: Role.EMPLOYEE },
-      select: { id: true, fullName: true, maxHoursPerWeek: true },
+      select: { id: true, fullName: true, maxHoursPerWeek: true, maxHoursPerDay: true },
       orderBy: { fullName: 'asc' },
     });
 
@@ -41,6 +40,7 @@ export class WorkloadService {
         fullName: u.fullName,
         plannedHours: planned,
         maxHours: u.maxHoursPerWeek,
+        maxHoursPerDay: u.maxHoursPerDay,
         status: classify(planned, u.maxHoursPerWeek),
       };
     });
@@ -49,7 +49,7 @@ export class WorkloadService {
   async forUser(userId: string, organizationId: string): Promise<WorkloadEntryDto> {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, organizationId },
-      select: { id: true, fullName: true, maxHoursPerWeek: true },
+      select: { id: true, fullName: true, maxHoursPerWeek: true, maxHoursPerDay: true },
     });
     if (!user) throw new NotFoundException('user not found');
 
@@ -64,6 +64,7 @@ export class WorkloadService {
       fullName: user.fullName,
       plannedHours: planned,
       maxHours: user.maxHoursPerWeek,
+      maxHoursPerDay: user.maxHoursPerDay,
       status: classify(planned, user.maxHoursPerWeek),
     };
   }

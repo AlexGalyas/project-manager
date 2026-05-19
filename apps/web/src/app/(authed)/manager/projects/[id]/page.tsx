@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, ListTodo, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { CalendarClock, ChevronLeft, ListTodo, Pencil, Plus, Trash2, TriangleAlert, X } from 'lucide-react';
 import type {
   ProjectWithTasksDto,
   SkillDto,
@@ -281,6 +281,7 @@ export default function ProjectDetailPage() {
                   <th>Skills</th>
                   <th>Deps</th>
                   <th>Deadline</th>
+                  <th>Schedule</th>
                   <th>Assignee</th>
                   <th aria-label="Actions" />
                 </tr>
@@ -289,7 +290,7 @@ export default function ProjectDetailPage() {
                 {project.tasks.map((t) =>
                   editingTaskId === t.id ? (
                     <tr key={t.id} className={styles.editingRow}>
-                      <td colSpan={9}>
+                      <td colSpan={10}>
                         <TaskEditForm
                           task={t}
                           skills={skills}
@@ -337,6 +338,17 @@ export default function ProjectDetailPage() {
                       </td>
                       <td className={styles.muted}>
                         {t.deadline ? new Date(t.deadline).toLocaleDateString() : '—'}
+                      </td>
+                      <td className={styles.muted}>
+                        {t.assignment ? (
+                          formatSchedule(
+                            t.assignment.plannedStart,
+                            t.assignment.plannedEnd,
+                            t.assignment.plannedHours,
+                          )
+                        ) : (
+                          <span className={styles.muted}>—</span>
+                        )}
                       </td>
                       <td>
                         <AssigneeCell
@@ -764,4 +776,39 @@ function DepsMultiSelect({
       )}
     </Field>
   );
+}
+
+function formatSchedule(
+  plannedStart: string | null,
+  plannedEnd: string | null,
+  plannedHours: number,
+): React.ReactNode {
+  if (!plannedStart || !plannedEnd) {
+    return (
+      <span className={styles.scheduleMissing} title="No plannedStart / plannedEnd — re-run optimizer">
+        <TriangleAlert size={12} /> unscheduled
+      </span>
+    );
+  }
+  const start = new Date(plannedStart);
+  const end = new Date(plannedEnd);
+  const sameDay = plannedStart.slice(0, 10) === plannedEnd.slice(0, 10);
+  return (
+    <span className={styles.scheduleRange}>
+      <CalendarClock size={12} />
+      {sameDay
+        ? formatDayUtc(start)
+        : `${formatDayUtc(start)} → ${formatDayUtc(end)}`}{' '}
+      <span className={styles.muted}>({plannedHours}h)</span>
+    </span>
+  );
+}
+
+function formatDayUtc(d: Date): string {
+  return d.toLocaleDateString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
 }

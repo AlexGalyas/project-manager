@@ -36,6 +36,7 @@ export class AuthService {
         role: user.role,
         organizationId: user.organizationId,
         maxHoursPerWeek: user.maxHoursPerWeek,
+        maxHoursPerDay: user.maxHoursPerDay,
       },
     };
   }
@@ -50,6 +51,7 @@ export class AuthService {
       role: user.role,
       organizationId: user.organizationId,
       maxHoursPerWeek: user.maxHoursPerWeek,
+      maxHoursPerDay: user.maxHoursPerDay,
     };
   }
 }

@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AssignmentSource, Role, TaskStatus } from '@prisma/client';
-import type { OptimizerResultDto, OptimizerRunInput } from '@workforce/shared';
+import {
+  distributeAssignmentByDay,
+  fromIsoDate,
+  type IsoDate,
+  type OptimizerResultDto,
+  type OptimizerRunInput,
+} from '@workforce/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { GreedyOptimizer } from './strategies/greedy-optimizer';
 import type {
@@ -25,20 +31,24 @@ export class OptimizerService {
   }
 
   /**
-   * Phase 7.5 contract:
+   * Phase 7.5 + Phase 9 (day-level) contract:
    * - Locked + manual assignments are *sacred*. The optimizer never deletes or
-   *   modifies them, and their `plannedHours` are pre-loaded into the
-   *   employee's load so the optimizer respects the hours they consume.
+   *   modifies them, and their per-day load is pre-loaded into the
+   *   employee's dailyLoad so the optimizer respects the daily capacity they
+   *   consume.
    * - `replaceExisting: true` only deletes assignments where
    *   `source = OPTIMIZER AND lockedByManager = false` within the scope.
    * - Tasks that already have a non-deleted assignment after the optional
    *   cleanup are skipped (not subject to optimization).
-   * - New assignments are persisted with `source: OPTIMIZER, lockedByManager: false`.
+   * - New assignments are persisted with `source: OPTIMIZER, lockedByManager:
+   *   false`, with `plannedStart` / `plannedEnd` set to the dates the
+   *   optimizer chose.
    */
   async run(organizationId: string, input: OptimizerRunInput): Promise<OptimizerResultDto> {
     const strategy = this.pickStrategy();
     const weights = { ...DEFAULT_WEIGHTS, ...(input.weights ?? {}) };
     const replaceExisting = input.replaceExisting ?? false;
+    const includeWeekends = input.includeWeekends ?? false;
 
     const projectScopeFilter =
       input.projectIds && input.projectIds.length > 0
@@ -73,14 +83,16 @@ export class OptimizerService {
       removedCount = result.count;
     }
 
-    // 3. Re-read assignments AFTER any cleanup so candidate filtering and
-    //    initial-load calculation see the surviving rows.
+    // 3. Re-read assignments AFTER any cleanup so candidate filtering, initial
+    //    daily-load, and end-date lookup see only surviving rows.
     const survivingAssignments = await this.prisma.assignment.findMany({
       where: { task: { project: { organizationId } } },
       select: {
         taskId: true,
         userId: true,
         plannedHours: true,
+        plannedStart: true,
+        plannedEnd: true,
         source: true,
         lockedByManager: true,
       },
@@ -90,22 +102,58 @@ export class OptimizerService {
     const survivingTaskIds = new Set(survivingAssignments.map((a) => a.taskId));
     const candidateTasks = tasksInScope.filter((t) => !survivingTaskIds.has(t.id));
 
-    // 5. Initial per-user load = sum of all surviving assignments
-    //    (manual + locked + any optimizer rows that weren't cleaned up).
-    const loadByUser = new Map<string, number>();
-    for (const a of survivingAssignments) {
-      loadByUser.set(a.userId, (loadByUser.get(a.userId) ?? 0) + a.plannedHours);
-    }
-
+    // 5. Pull employees so we know each user's maxHoursPerDay before we
+    //    distribute existing assignments.
     const employees = await this.prisma.user.findMany({
       where: { organizationId, role: Role.EMPLOYEE },
       include: { skills: { select: { skillId: true } } },
     });
+    const maxHoursPerDayByUser = new Map<string, number>();
+    for (const u of employees) maxHoursPerDayByUser.set(u.id, u.maxHoursPerDay);
+
+    // 6. Build per-user daily-load map from surviving assignments, plus total
+    //    weekly load. For assignments without plannedStart/plannedEnd we fall
+    //    back to "ad-hoc spread starting today at maxHoursPerDay" so the
+    //    optimizer still respects them as consumed capacity.
+    const today = new Date();
+    const loadByUser = new Map<string, number>();
+    const dailyLoadByUser = new Map<string, Map<IsoDate, number>>();
+    const existingTaskEndByTask = new Map<string, Date | null>();
+
+    for (const a of survivingAssignments) {
+      loadByUser.set(a.userId, (loadByUser.get(a.userId) ?? 0) + a.plannedHours);
+
+      const maxPerDay = maxHoursPerDayByUser.get(a.userId) ?? 8;
+      const start = a.plannedStart ?? today;
+      const end = a.plannedEnd ?? a.plannedStart ?? today;
+
+      const distribution = distributeAssignmentByDay({
+        plannedStart: toIso(start),
+        plannedEnd: toIso(end),
+        plannedHours: a.plannedHours,
+        maxHoursPerDay: maxPerDay,
+        includeWeekends,
+      });
+
+      let userDaily = dailyLoadByUser.get(a.userId);
+      if (!userDaily) {
+        userDaily = new Map();
+        dailyLoadByUser.set(a.userId, userDaily);
+      }
+      for (const [iso, hours] of distribution) {
+        userDaily.set(iso, (userDaily.get(iso) ?? 0) + hours);
+      }
+
+      existingTaskEndByTask.set(a.taskId, a.plannedEnd ?? a.plannedStart ?? null);
+    }
+
     const employeesInput: OptimizerEmployeeInput[] = employees.map((u) => ({
       id: u.id,
       maxHoursPerWeek: u.maxHoursPerWeek,
+      maxHoursPerDay: u.maxHoursPerDay,
       skillIds: u.skills.map((s) => s.skillId),
       initialLoadHours: loadByUser.get(u.id) ?? 0,
+      initialDailyLoad: dailyLoadByUser.get(u.id) ?? new Map(),
     }));
 
     const tasksInput: OptimizerTaskInput[] = candidateTasks.map((t) => ({
@@ -130,7 +178,8 @@ export class OptimizerService {
     this.logger.log(
       `running ${strategy.name} on org=${organizationId}: ` +
         `${candidateTasks.length} candidate tasks, ${employeesInput.length} employees, ` +
-        `replaceExisting=${replaceExisting}, removed=${removedCount}, preserved=${preservedCount} (locked=${lockedCount})`,
+        `replaceExisting=${replaceExisting}, includeWeekends=${includeWeekends}, ` +
+        `removed=${removedCount}, preserved=${preservedCount} (locked=${lockedCount})`,
     );
 
     const result = await strategy.optimize({
@@ -138,13 +187,14 @@ export class OptimizerService {
       employees: employeesInput,
       preAssignedTaskIds,
       existingAssignmentByTask,
+      existingTaskEndByTask,
       weights,
-      now: new Date(),
+      includeWeekends,
+      now: today,
     });
 
-    // 6. Persist new assignments. Since candidateTasks had no surviving
-    //    assignment, plain `create` works (no upsert needed) — there is no
-    //    row to update.
+    // 7. Persist new assignments with plannedStart / plannedEnd from the
+    //    optimizer's day-level placement.
     if (result.assignments.length > 0) {
       await this.prisma.$transaction(
         result.assignments.map((a) =>
@@ -153,6 +203,8 @@ export class OptimizerService {
               taskId: a.taskId,
               userId: a.userId,
               plannedHours: a.plannedHours,
+              plannedStart: fromIsoDate(a.plannedStart),
+              plannedEnd: fromIsoDate(a.plannedEnd),
               source: AssignmentSource.OPTIMIZER,
               lockedByManager: false,
             },
@@ -171,4 +223,8 @@ export class OptimizerService {
       metrics: result.metrics,
     };
   }
+}
+
+function toIso(d: Date): IsoDate {
+  return d.toISOString().slice(0, 10);
 }

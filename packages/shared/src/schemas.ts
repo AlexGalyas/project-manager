@@ -9,6 +9,8 @@ export type LoginInput = z.infer<typeof LoginInputSchema>;
 export const OptimizerRunInputSchema = z.object({
   projectIds: z.array(z.string()).optional(),
   replaceExisting: z.boolean().default(false),
+  /** Schedule on Saturday + Sunday too. Default: false (Mon-Fri only). */
+  includeWeekends: z.boolean().default(false),
   weights: z
     .object({
       alpha: z.number().nonnegative().default(1.0),
@@ -73,8 +75,9 @@ export const AssignmentCreateInputSchema = z.object({
   taskId: z.string().min(1),
   userId: z.string().min(1),
   plannedHours: z.number().positive().max(1000).optional(),
-  plannedStart: z.string().datetime().optional(),
-  plannedEnd: z.string().datetime().optional(),
+  /** ISO date-only (YYYY-MM-DD) or ISO datetime. If omitted, auto-distributed. */
+  plannedStart: z.string().optional(),
+  plannedEnd: z.string().optional(),
   force: z.boolean().optional().default(false),
 });
 export type AssignmentCreateInput = z.infer<typeof AssignmentCreateInputSchema>;
@@ -83,8 +86,8 @@ export const AssignmentUpdateInputSchema = z
   .object({
     userId: z.string().min(1),
     plannedHours: z.number().positive().max(1000),
-    plannedStart: z.string().datetime().nullable(),
-    plannedEnd: z.string().datetime().nullable(),
+    plannedStart: z.string().nullable(),
+    plannedEnd: z.string().nullable(),
     force: z.boolean(),
   })
   .partial();
@@ -98,6 +101,7 @@ export const UserCreateInputSchema = z.object({
   password: z.string().min(8).max(72),
   role: RoleSchema,
   maxHoursPerWeek: z.number().int().min(1).max(80).default(40),
+  maxHoursPerDay: z.number().int().min(1).max(24).default(8),
   skillIds: z.array(z.string()).default([]),
 });
 export type UserCreateInput = z.infer<typeof UserCreateInputSchema>;
@@ -108,6 +112,7 @@ export const UserUpdateInputSchema = z
     fullName: z.string().trim().min(2).max(100),
     role: RoleSchema,
     maxHoursPerWeek: z.number().int().min(1).max(80),
+    maxHoursPerDay: z.number().int().min(1).max(24),
     skillIds: z.array(z.string()).max(50),
   })
   .partial();

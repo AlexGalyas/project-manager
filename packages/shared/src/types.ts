@@ -5,6 +5,7 @@ export type AssignmentSource = 'MANUAL' | 'OPTIMIZER';
 export type AssignmentWarningCode =
   | 'MISSING_SKILLS'
   | 'OVERLOAD'
+  | 'DAILY_OVERLOAD'
   | 'UNRESOLVED_DEPENDENCIES';
 
 export interface ApiErrorBody {
@@ -22,6 +23,7 @@ export interface AuthUser {
   role: Role;
   organizationId: string;
   maxHoursPerWeek: number;
+  maxHoursPerDay: number;
 }
 
 export interface LoginResponse {
@@ -45,6 +47,7 @@ export interface UserSummaryDto {
   fullName: string;
   role: Role;
   maxHoursPerWeek: number;
+  maxHoursPerDay: number;
   skills: { skillId: string; name: string; level: number }[];
 }
 
@@ -118,6 +121,7 @@ export interface WorkloadEntryDto {
   fullName: string;
   plannedHours: number;
   maxHours: number;
+  maxHoursPerDay: number;
   status: WorkloadStatus;
 }
 
@@ -125,11 +129,24 @@ export interface OptimizerAssignmentDto {
   taskId: string;
   userId: string;
   plannedHours: number;
+  plannedStart: string;
+  plannedEnd: string;
 }
+
+export type OptimizerUnassignedReason =
+  | 'MISSING_SKILLS'
+  | 'NO_DAILY_CAPACITY'
+  | 'DEPENDENCIES_UNSCHEDULED'
+  | 'NO_DEADLINE_RANGE'
+  | 'CYCLIC_DEPENDENCIES'
+  | 'OTHER';
 
 export interface OptimizerUnassignedDto {
   taskId: string;
   taskName: string;
+  /** Stable machine-readable reason code, for grouped UI display. */
+  reasonCode: OptimizerUnassignedReason;
+  /** Human-readable explanation. */
   reason: string;
 }
 

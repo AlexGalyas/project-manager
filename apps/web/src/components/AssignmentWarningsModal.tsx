@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Brain, Clock, Link2 } from 'lucide-react';
+import { AlertTriangle, Brain, CalendarClock, Clock, Link2 } from 'lucide-react';
 import type {
   AssignmentWarningCode,
   AssignmentWarningDto,
@@ -20,6 +20,7 @@ interface Props {
 const ICONS: Record<AssignmentWarningCode, React.ReactNode> = {
   MISSING_SKILLS: <Brain size={16} />,
   OVERLOAD: <Clock size={16} />,
+  DAILY_OVERLOAD: <CalendarClock size={16} />,
   UNRESOLVED_DEPENDENCIES: <Link2 size={16} />,
 };
 

@@ -47,6 +47,7 @@ model User {
   fullName         String
   role             Role
   maxHoursPerWeek  Int     @default(40)
+  maxHoursPerDay   Int     @default(8)
   createdAt        DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
