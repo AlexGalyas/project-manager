@@ -1,4 +1,4 @@
-import type { AssignmentWarningCode, AssignmentWarningDto } from '@workforce/shared';
+import type { AssignmentWarningCode, AssignmentWarningDto, IsoDate } from '@workforce/shared';
 
 export interface SkillCheckInput {
   user: { fullName: string; skillIds: string[] };
@@ -31,6 +31,50 @@ export function checkOverload(input: OverloadCheckInput): AssignmentWarningDto |
       maxHours: input.user.maxHoursPerWeek,
       projectedLoadHours: projected,
     },
+  });
+}
+
+export interface DailyOverloadCheckInput {
+  user: { fullName: string; maxHoursPerDay: number };
+  /** Per-day load already booked (without the new assignment), keyed by YYYY-MM-DD. */
+  existingDailyLoad: ReadonlyMap<IsoDate, number>;
+  /** Per-day distribution this new (or updated) assignment is about to add. */
+  addedDailyLoad: ReadonlyMap<IsoDate, number>;
+}
+
+/**
+ * Returns at most one DAILY_OVERLOAD warning. The details payload lists every
+ * date that goes over `maxHoursPerDay` so the manager can see the worst day(s)
+ * at a glance.
+ */
+export function checkDailyOverload(input: DailyOverloadCheckInput): AssignmentWarningDto | null {
+  const offenders: Array<{
+    date: IsoDate;
+    currentLoad: number;
+    addedHours: number;
+    maxHoursPerDay: number;
+  }> = [];
+  for (const [date, added] of input.addedDailyLoad) {
+    const current = input.existingDailyLoad.get(date) ?? 0;
+    if (current + added > input.user.maxHoursPerDay) {
+      offenders.push({
+        date,
+        currentLoad: current,
+        addedHours: added,
+        maxHoursPerDay: input.user.maxHoursPerDay,
+      });
+    }
+  }
+  if (offenders.length === 0) return null;
+  const worst = [...offenders].sort(
+    (a, b) => b.currentLoad + b.addedHours - (a.currentLoad + a.addedHours),
+  )[0]!;
+  return warn('DAILY_OVERLOAD', {
+    message:
+      `${input.user.fullName} would be at ${worst.currentLoad + worst.addedHours}h on ${worst.date} ` +
+      `(daily cap ${input.user.maxHoursPerDay}h)` +
+      (offenders.length > 1 ? ` plus ${offenders.length - 1} more day(s)` : ''),
+    details: { offenders },
   });
 }
 

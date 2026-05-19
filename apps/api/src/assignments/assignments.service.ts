@@ -5,17 +5,23 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AssignmentSource, Role, TaskStatus, type Prisma } from '@prisma/client';
-import type {
-  AssignmentCreateInput,
-  AssignmentDto,
-  AssignmentListQuery,
-  AssignmentMutationResultDto,
-  AssignmentUpdateInput,
-  AssignmentWarningDto,
-  AssignmentWithRefsDto,
+import {
+  distributeAssignmentByDay,
+  fromIsoDate,
+  frontFillSchedule,
+  toIsoDate,
+  type AssignmentCreateInput,
+  type AssignmentDto,
+  type AssignmentListQuery,
+  type AssignmentMutationResultDto,
+  type AssignmentUpdateInput,
+  type AssignmentWarningDto,
+  type AssignmentWithRefsDto,
+  type IsoDate,
 } from '@workforce/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  checkDailyOverload,
   checkDependencies,
   checkOverload,
   checkSkills,
@@ -100,7 +106,6 @@ export class AssignmentsService {
   }
 
   async getByTaskId(organizationId: string, taskId: string): Promise<AssignmentDto | null> {
-    // Confirm the task belongs to the org first (cross-org probe protection).
     const task = await this.prisma.task.findFirst({
       where: { id: taskId, project: { organizationId } },
       select: { id: true },
@@ -131,11 +136,19 @@ export class AssignmentsService {
     }
 
     const plannedHours = input.plannedHours ?? task.durationHours;
+    const schedule = this.resolveSchedule({
+      plannedStart: input.plannedStart ?? null,
+      plannedEnd: input.plannedEnd ?? null,
+      plannedHours,
+      maxHoursPerDay: user.maxHoursPerDay,
+    });
+
     const warnings = await this.collectWarnings({
       organizationId,
       task,
       user,
       plannedHours,
+      addedDailyLoad: schedule.distribution,
       excludeAssignmentTaskId: null,
     });
 
@@ -155,8 +168,8 @@ export class AssignmentsService {
         taskId: input.taskId,
         userId: input.userId,
         plannedHours,
-        plannedStart: input.plannedStart ? new Date(input.plannedStart) : null,
-        plannedEnd: input.plannedEnd ? new Date(input.plannedEnd) : null,
+        plannedStart: schedule.plannedStart ? fromIsoDate(schedule.plannedStart) : null,
+        plannedEnd: schedule.plannedEnd ? fromIsoDate(schedule.plannedEnd) : null,
         source: AssignmentSource.MANUAL,
         lockedByManager: true,
       },
@@ -181,12 +194,35 @@ export class AssignmentsService {
     const task = await this.loadTaskForAssignment(organizationId, existing.taskId);
     const user = await this.loadEmployeeForAssignment(organizationId, nextUserId);
 
+    // Recompute schedule. If the caller provided plannedStart/plannedEnd
+    // (including explicit null), respect them; otherwise carry forward what
+    // the row already has, or auto-distribute if both are missing.
+    const startInput =
+      input.plannedStart !== undefined
+        ? input.plannedStart
+        : existing.plannedStart
+          ? existing.plannedStart.toISOString()
+          : null;
+    const endInput =
+      input.plannedEnd !== undefined
+        ? input.plannedEnd
+        : existing.plannedEnd
+          ? existing.plannedEnd.toISOString()
+          : null;
+
+    const schedule = this.resolveSchedule({
+      plannedStart: startInput,
+      plannedEnd: endInput,
+      plannedHours: nextPlannedHours,
+      maxHoursPerDay: user.maxHoursPerDay,
+    });
+
     const warnings = await this.collectWarnings({
       organizationId,
       task,
       user,
       plannedHours: nextPlannedHours,
-      // Don't count this assignment toward its own user's load.
+      addedDailyLoad: schedule.distribution,
       excludeAssignmentTaskId: existing.taskId,
     });
 
@@ -206,12 +242,8 @@ export class AssignmentsService {
       data: {
         userId: nextUserId,
         plannedHours: nextPlannedHours,
-        ...(input.plannedStart !== undefined
-          ? { plannedStart: input.plannedStart ? new Date(input.plannedStart) : null }
-          : {}),
-        ...(input.plannedEnd !== undefined
-          ? { plannedEnd: input.plannedEnd ? new Date(input.plannedEnd) : null }
-          : {}),
+        plannedStart: schedule.plannedStart ? fromIsoDate(schedule.plannedStart) : null,
+        plannedEnd: schedule.plannedEnd ? fromIsoDate(schedule.plannedEnd) : null,
       },
     });
 
@@ -242,6 +274,68 @@ export class AssignmentsService {
 
   // ---------- internal helpers ----------
 
+  /**
+   * Decide the (plannedStart, plannedEnd, daily distribution) triple for a
+   * new or updated assignment.
+   *
+   * - If both `plannedStart` and `plannedEnd` are provided, use them and
+   *   front-fill the distribution against `maxHoursPerDay` within the range.
+   * - If only one is provided, use it as the anchor and auto-fill the other
+   *   end by walking forward until `plannedHours` is exhausted.
+   * - If neither is provided, start today (UTC) and auto-fill forward.
+   *
+   * Weekends are skipped in auto-distribution (Mon-Fri only); managers can
+   * still override by setting an explicit weekend date.
+   */
+  private resolveSchedule(opts: {
+    plannedStart: string | null;
+    plannedEnd: string | null;
+    plannedHours: number;
+    maxHoursPerDay: number;
+  }): {
+    plannedStart: IsoDate | null;
+    plannedEnd: IsoDate | null;
+    distribution: Map<IsoDate, number>;
+  } {
+    const todayIso = toIsoDate(new Date());
+    const start = opts.plannedStart ? toIsoDate(new Date(opts.plannedStart)) : todayIso;
+    // Without an explicit end, give the auto-distributor a generous window
+    // (60 working days) so it can spread however many hours are needed.
+    const endAnchor = opts.plannedEnd
+      ? toIsoDate(new Date(opts.plannedEnd))
+      : null;
+
+    if (endAnchor) {
+      const dist = distributeAssignmentByDay({
+        plannedStart: start,
+        plannedEnd: endAnchor,
+        plannedHours: opts.plannedHours,
+        maxHoursPerDay: opts.maxHoursPerDay,
+        includeWeekends: false,
+      });
+      return {
+        plannedStart: dist.size > 0 ? [...dist.keys()][0]! : start,
+        plannedEnd: dist.size > 0 ? [...dist.keys()][dist.size - 1]! : endAnchor,
+        distribution: dist,
+      };
+    }
+
+    const window = new Date(fromIsoDate(start));
+    window.setUTCDate(window.getUTCDate() + 60);
+    const result = frontFillSchedule({
+      from: fromIsoDate(start),
+      to: window,
+      durationHours: opts.plannedHours,
+      maxHoursPerDay: opts.maxHoursPerDay,
+      includeWeekends: false,
+    });
+    return {
+      plannedStart: result.plannedStart ?? start,
+      plannedEnd: result.plannedEnd ?? start,
+      distribution: result.distribution,
+    };
+  }
+
   private async loadTaskForAssignment(organizationId: string, taskId: string) {
     const task = await this.prisma.task.findFirst({
       where: { id: taskId, project: { organizationId } },
@@ -266,11 +360,8 @@ export class AssignmentsService {
   }
 
   /**
-   * Validate skills / overload / dependencies and return the list of warnings.
-   *
-   * For overload, `excludeAssignmentTaskId` lets the caller subtract the
-   * assignment they're updating from the user's "current load" before adding
-   * the new hours back in — otherwise we'd double-count.
+   * Validate skills / weekly overload / daily overload / dependencies and
+   * return the list of warnings.
    */
   private async collectWarnings(args: {
     organizationId: string;
@@ -284,19 +375,12 @@ export class AssignmentsService {
       include: { skills: { select: { skillId: true } } };
     }>;
     plannedHours: number;
+    addedDailyLoad: ReadonlyMap<IsoDate, number>;
     excludeAssignmentTaskId: string | null;
   }): Promise<AssignmentWarningDto[]> {
-    if (args.user.role !== Role.EMPLOYEE) {
-      // Manager / admin assignments are unusual but legal. Skip skill +
-      // overload checks since "max hours per week" still applies (we keep
-      // overload), but skills probably aren't tracked for managers.
-      // Drop skill check; keep overload + dep checks.
-    }
-
     const warnings: AssignmentWarningDto[] = [];
 
-    // Skill check — only meaningful for employees (managers/admins aren't typed
-    // by skill in this MVP). Skip if user has no skill list AND task has none either.
+    // 1. Skill check — only meaningful for employees.
     if (args.user.role === Role.EMPLOYEE) {
       const requiredSkillNames = new Map<string, string>(
         args.task.skills.map((ts) => [ts.skillId, ts.skill.name]),
@@ -314,8 +398,7 @@ export class AssignmentsService {
       if (skillWarn) warnings.push(skillWarn);
     }
 
-    // Overload check — sum the user's existing assignments (excluding the one
-    // being modified, if any).
+    // 2. Weekly overload — sum the user's other assignments.
     const load = await this.prisma.assignment.aggregate({
       where: {
         userId: args.user.id,
@@ -336,8 +419,40 @@ export class AssignmentsService {
     });
     if (overWarn) warnings.push(overWarn);
 
-    // Dependencies — task.dependsOn relates TaskDependency rows; each carries
-    // .dependsOn = the prerequisite Task with its current assignment.
+    // 3. Daily overload — distribute every other assignment by day and check
+    //    whether any day in the new assignment's window exceeds maxHoursPerDay.
+    const otherAssignments = await this.prisma.assignment.findMany({
+      where: {
+        userId: args.user.id,
+        ...(args.excludeAssignmentTaskId
+          ? { NOT: { taskId: args.excludeAssignmentTaskId } }
+          : {}),
+      },
+      select: { plannedHours: true, plannedStart: true, plannedEnd: true },
+    });
+    const existingDailyLoad = new Map<IsoDate, number>();
+    for (const a of otherAssignments) {
+      if (!a.plannedStart || !a.plannedEnd) continue; // can't bucket without dates
+      const dist = distributeAssignmentByDay({
+        plannedStart: toIsoDate(a.plannedStart),
+        plannedEnd: toIsoDate(a.plannedEnd),
+        plannedHours: a.plannedHours,
+        maxHoursPerDay: args.user.maxHoursPerDay,
+        includeWeekends: false,
+      });
+      for (const [iso, hours] of dist) {
+        existingDailyLoad.set(iso, (existingDailyLoad.get(iso) ?? 0) + hours);
+      }
+    }
+    const dailyWarn = checkDailyOverload({
+      user: { fullName: args.user.fullName, maxHoursPerDay: args.user.maxHoursPerDay },
+      existingDailyLoad,
+      addedDailyLoad: args.addedDailyLoad,
+    });
+    if (dailyWarn) warnings.push(dailyWarn);
+
+    // 4. Dependencies — task.dependsOn relates TaskDependency rows; each
+    //    carries .dependsOn = the prerequisite Task with its current assignment.
     const depWarn = checkDependencies({
       task: {
         dependsOn: args.task.dependsOn.map((d) => ({

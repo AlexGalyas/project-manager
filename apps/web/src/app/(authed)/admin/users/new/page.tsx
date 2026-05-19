@@ -30,6 +30,7 @@ export default function NewUserPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<Role>('EMPLOYEE');
   const [maxHoursPerWeek, setMaxHoursPerWeek] = useState('40');
+  const [maxHoursPerDay, setMaxHoursPerDay] = useState('8');
   const [skillIds, setSkillIds] = useState<string[]>([]);
 
   const [allSkills, setAllSkills] = useState<SkillDto[]>([]);
@@ -50,6 +51,8 @@ export default function NewUserPage() {
     if (password.length < 8) errs.password = 'Password must be at least 8 characters';
     const max = Number.parseInt(maxHoursPerWeek, 10);
     if (!Number.isFinite(max) || max < 1 || max > 80) errs.maxHoursPerWeek = '1–80';
+    const maxDay = Number.parseInt(maxHoursPerDay, 10);
+    if (!Number.isFinite(maxDay) || maxDay < 1 || maxDay > 24) errs.maxHoursPerDay = '1–24';
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -65,6 +68,7 @@ export default function NewUserPage() {
         password,
         role,
         maxHoursPerWeek: Number.parseInt(maxHoursPerWeek, 10),
+        maxHoursPerDay: Number.parseInt(maxHoursPerDay, 10),
         skillIds,
       });
       toastSuccess(`User "${fullName.trim()}" created`);
@@ -148,6 +152,18 @@ export default function NewUserPage() {
             value={maxHoursPerWeek}
             onChange={(e) => setMaxHoursPerWeek(e.target.value)}
             error={fieldErrors.maxHoursPerWeek}
+            className={styles.numberInput}
+          />
+
+          <Input
+            label="Max hours per day"
+            type="number"
+            min={1}
+            max={24}
+            value={maxHoursPerDay}
+            onChange={(e) => setMaxHoursPerDay(e.target.value)}
+            error={fieldErrors.maxHoursPerDay}
+            helper="Caps a single day so a 14h task spreads across multiple days."
             className={styles.numberInput}
           />
 

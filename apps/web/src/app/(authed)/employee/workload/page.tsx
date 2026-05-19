@@ -46,12 +46,13 @@ export default function EmployeeWorkloadPage() {
   }, []);
 
   const bucketed = useMemo(() => {
-    if (!mine) return null;
-    return bucketAssignmentsByDay(mine, week);
-  }, [mine, week]);
+    if (!mine || !me) return null;
+    const dailyMaxByUser = new Map<string, number>([[me.userId, me.maxHoursPerDay]]);
+    return bucketAssignmentsByDay(mine, week, dailyMaxByUser);
+  }, [mine, me, week]);
 
   const ready = me && mine && bucketed;
-  const dailyMax = me ? me.maxHours / 5 : 0;
+  const dailyMax = me ? me.maxHoursPerDay : 0;
   const utilization =
     me && me.maxHours > 0 ? Math.round((me.plannedHours / me.maxHours) * 100) : 0;
 
@@ -68,9 +69,10 @@ export default function EmployeeWorkloadPage() {
       title="My workload"
       description={
         <>
-          Hours from tasks assigned to you, bucketed by their deadline. Daily capacity is{' '}
+          Per-day hours from your assignments&apos; plannedStart-plannedEnd ranges, front-filled
+          at your daily cap of{' '}
           <code className={styles.code}>
-            {me ? `${Math.round(dailyMax * 10) / 10}h` : '—'}
+            {me ? `${me.maxHoursPerDay}h` : '—'}
           </code>
           .
         </>
@@ -107,12 +109,21 @@ export default function EmployeeWorkloadPage() {
         </Card>
       )}
 
-      {ready && bucketed.outsideWeekCount > 0 && (
+      {ready && bucketed!.outsideWeekCount > 0 && (
         <Card padding="md">
           <p className={styles.outsideNote}>
             <TrendingUp size={14} />
-            {bucketed.outsideWeekCount} of your tasks have a deadline outside this week (no
-            deadline, or earlier/later than Mon–Fri).
+            {bucketed!.outsideWeekCount} of your tasks have hours scheduled outside this Mon-Fri
+            window.
+          </p>
+        </Card>
+      )}
+      {ready && bucketed!.unscheduledCount > 0 && (
+        <Card padding="md">
+          <p className={styles.outsideNote}>
+            <TrendingUp size={14} />
+            {bucketed!.unscheduledCount} of your tasks have no plannedStart / plannedEnd yet
+            &mdash; ask your manager to re-run the optimizer.
           </p>
         </Card>
       )}

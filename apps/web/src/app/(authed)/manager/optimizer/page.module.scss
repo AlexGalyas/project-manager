@@ -161,9 +161,30 @@
   flex-shrink: 0;
 }
 
+.unassignedGroup {
+  margin-top: var(--space-4);
+
+  &:first-child {
+    margin-top: var(--space-3);
+  }
+}
+
+.unassignedGroupHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.unassignedGroupCount {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
 .unassignedList {
   list-style: none;
-  margin: var(--space-3) 0 0 0;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;

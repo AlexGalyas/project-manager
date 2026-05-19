@@ -14,6 +14,8 @@ import {
 import type {
   AssignmentWithRefsDto,
   OptimizerResultDto,
+  OptimizerUnassignedDto,
+  OptimizerUnassignedReason,
   ProjectDto,
   UserSummaryDto,
 } from '@workforce/shared';
@@ -36,12 +38,46 @@ import {
 import { StatCard } from '@/components/dashboard';
 import styles from './page.module.scss';
 
+const REASON_LABEL: Record<OptimizerUnassignedReason, string> = {
+  NO_DAILY_CAPACITY: 'no daily capacity before deadline',
+  MISSING_SKILLS: 'no eligible employee (skills)',
+  DEPENDENCIES_UNSCHEDULED: 'waiting on dependencies',
+  NO_DEADLINE_RANGE: 'deadline earlier than earliest start',
+  CYCLIC_DEPENDENCIES: 'dependency cycle',
+  OTHER: 'other',
+};
+
+const REASON_VARIANT: Record<
+  OptimizerUnassignedReason,
+  'warning' | 'danger' | 'info' | 'neutral'
+> = {
+  NO_DAILY_CAPACITY: 'danger',
+  MISSING_SKILLS: 'warning',
+  DEPENDENCIES_UNSCHEDULED: 'info',
+  NO_DEADLINE_RANGE: 'danger',
+  CYCLIC_DEPENDENCIES: 'danger',
+  OTHER: 'neutral',
+};
+
+function groupUnassigned(
+  list: OptimizerUnassignedDto[],
+): Map<OptimizerUnassignedReason, OptimizerUnassignedDto[]> {
+  const m = new Map<OptimizerUnassignedReason, OptimizerUnassignedDto[]>();
+  for (const u of list) {
+    const arr = m.get(u.reasonCode) ?? [];
+    arr.push(u);
+    m.set(u.reasonCode, arr);
+  }
+  return m;
+}
+
 export default function OptimizerPage() {
   const [projects, setProjects] = useState<ProjectDto[] | null>(null);
   const [users, setUsers] = useState<UserSummaryDto[] | null>(null);
 
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[] | 'all'>('all');
   const [replaceExisting, setReplaceExisting] = useState(false);
+  const [includeWeekends, setIncludeWeekends] = useState(false);
   const [alpha, setAlpha] = useState('1');
   const [beta, setBeta] = useState('2');
   const [gamma, setGamma] = useState('0.5');
@@ -89,6 +125,7 @@ export default function OptimizerPage() {
     try {
       const payload = {
         replaceExisting,
+        includeWeekends,
         projectIds:
           selectedProjectIds === 'all' || selectedProjectIds.length === 0
             ? undefined
@@ -218,6 +255,18 @@ export default function OptimizerPage() {
               }
               checked={replaceExisting}
               onChange={() => setReplaceExisting(true)}
+            />
+            <Checkbox
+              label={
+                <span className={styles.modeLabel}>
+                  <strong>Include weekends</strong>
+                  <span className={styles.modeHint}>
+                    Schedule on Saturday + Sunday too. Off = Mon–Fri only.
+                  </span>
+                </span>
+              }
+              checked={includeWeekends}
+              onChange={() => setIncludeWeekends((v) => !v)}
             />
           </div>
         </Card>
@@ -401,17 +450,32 @@ export default function OptimizerPage() {
                 title="Unassigned tasks"
                 description={`${result.unassigned.length} task${result.unassigned.length === 1 ? '' : 's'} couldn't be scheduled`}
               />
-              <ul className={styles.unassignedList}>
-                {result.unassigned.map((u) => (
-                  <li key={u.taskId} className={styles.unassignedRow}>
-                    <span className={styles.unassignedName}>
-                      <ListChecks size={14} />
-                      {u.taskName}
-                    </span>
-                    <span className={styles.unassignedReason}>{u.reason}</span>
-                  </li>
-                ))}
-              </ul>
+              {Array.from(groupUnassigned(result.unassigned).entries()).map(
+                ([reasonCode, items]) => (
+                  <div key={reasonCode} className={styles.unassignedGroup}>
+                    <header className={styles.unassignedGroupHeader}>
+                      <Badge
+                        variant={REASON_VARIANT[reasonCode] ?? 'neutral'}
+                        size="sm"
+                      >
+                        {REASON_LABEL[reasonCode] ?? reasonCode}
+                      </Badge>
+                      <span className={styles.unassignedGroupCount}>{items.length}</span>
+                    </header>
+                    <ul className={styles.unassignedList}>
+                      {items.map((u) => (
+                        <li key={u.taskId} className={styles.unassignedRow}>
+                          <span className={styles.unassignedName}>
+                            <ListChecks size={14} />
+                            {u.taskName}
+                          </span>
+                          <span className={styles.unassignedReason}>{u.reason}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ),
+              )}
             </Card>
           )}
         </>

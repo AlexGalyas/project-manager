@@ -26,6 +26,7 @@ function toDto(u: UserWithSkills): UserSummaryDto {
     fullName: u.fullName,
     role: u.role,
     maxHoursPerWeek: u.maxHoursPerWeek,
+    maxHoursPerDay: u.maxHoursPerDay,
     skills: u.skills.map((us) => ({
       skillId: us.skillId,
       name: us.skill.name,
@@ -69,6 +70,7 @@ export class UsersService {
           passwordHash,
           role: input.role,
           maxHoursPerWeek: input.maxHoursPerWeek,
+          maxHoursPerDay: input.maxHoursPerDay,
           skills: {
             create: (input.skillIds ?? []).map((skillId) => ({ skillId })),
           },
@@ -121,6 +123,9 @@ export class UsersService {
             ...(input.role !== undefined ? { role: input.role } : {}),
             ...(input.maxHoursPerWeek !== undefined
               ? { maxHoursPerWeek: input.maxHoursPerWeek }
+              : {}),
+            ...(input.maxHoursPerDay !== undefined
+              ? { maxHoursPerDay: input.maxHoursPerDay }
               : {}),
           },
         });

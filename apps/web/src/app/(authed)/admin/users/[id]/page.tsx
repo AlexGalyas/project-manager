@@ -48,6 +48,7 @@ export default function EditUserPage() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('EMPLOYEE');
   const [maxHoursPerWeek, setMaxHoursPerWeek] = useState('40');
+  const [maxHoursPerDay, setMaxHoursPerDay] = useState('8');
   const [skillIds, setSkillIds] = useState<string[]>([]);
 
   const [busy, setBusy] = useState(false);
@@ -71,6 +72,7 @@ export default function EditUserPage() {
         setEmail(u.email);
         setRole(u.role);
         setMaxHoursPerWeek(String(u.maxHoursPerWeek));
+        setMaxHoursPerDay(String(u.maxHoursPerDay));
         setSkillIds(u.skills.map((s) => s.skillId));
       })
       .catch((err: Error) => {
@@ -97,6 +99,8 @@ export default function EditUserPage() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'Invalid email';
     const max = Number.parseInt(maxHoursPerWeek, 10);
     if (!Number.isFinite(max) || max < 1 || max > 80) errs.maxHoursPerWeek = '1–80';
+    const maxDay = Number.parseInt(maxHoursPerDay, 10);
+    if (!Number.isFinite(maxDay) || maxDay < 1 || maxDay > 24) errs.maxHoursPerDay = '1–24';
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -111,6 +115,7 @@ export default function EditUserPage() {
         fullName: fullName.trim(),
         email,
         maxHoursPerWeek: Number.parseInt(maxHoursPerWeek, 10),
+        maxHoursPerDay: Number.parseInt(maxHoursPerDay, 10),
         skillIds,
       };
       if (!roleDisabled && role !== target.role) body.role = role;
@@ -296,6 +301,18 @@ export default function EditUserPage() {
             value={maxHoursPerWeek}
             onChange={(e) => setMaxHoursPerWeek(e.target.value)}
             error={fieldErrors.maxHoursPerWeek}
+            className={styles.numberInput}
+          />
+
+          <Input
+            label="Max hours per day"
+            type="number"
+            min={1}
+            max={24}
+            value={maxHoursPerDay}
+            onChange={(e) => setMaxHoursPerDay(e.target.value)}
+            error={fieldErrors.maxHoursPerDay}
+            helper="Caps a single day so a 14h task spreads across multiple days."
             className={styles.numberInput}
           />
 

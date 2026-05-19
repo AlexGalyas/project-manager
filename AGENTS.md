@@ -157,6 +157,24 @@ Adding a new warning type: add it to `AssignmentWarningCode` in `packages/shared
 
 See [ADR-0006](docs/adr/0006-assignment-source-and-locking.md) for the model rationale.
 
+### Day-level scheduling (Phase 9)
+
+Phase 4-7.5 tracked only **weekly** load per employee, so the optimizer was free to stack 14h onto a single Wednesday. Phase 9 made every placement day-aware:
+
+- `User.maxHoursPerDay Int @default(8)` — the per-day capacity, paired with `maxHoursPerWeek`. The admin user form lets you change both per user. Default is 8h for everyone.
+- Every `Assignment` carries `plannedStart` and `plannedEnd` (UTC date columns). The optimizer fills `durationHours` day-by-day at `maxHoursPerDay`, skipping weekends unless the run input sets `includeWeekends: true`. The web sends `includeWeekends` from the optimizer page's "Include weekends" checkbox.
+- The optimizer walks dates from `max(today, latest plannedEnd of deps)` to the task's `deadline` and stops at the first day with available capacity, accumulating until `durationHours` is met. A 14h task spread by an 8h cap becomes `plannedStart` = day1, `plannedEnd` = day2.
+- Manual `POST /assignments` and `PATCH /assignments/:id` accept optional `plannedStart` / `plannedEnd` ISO strings. When either is omitted the service front-fills forward from the start anchor (or today) at the user's `maxHoursPerDay`. The DB row always ends up with a non-null start + end after a successful mutation.
+- A new `DAILY_OVERLOAD` warning is emitted when the resulting per-day distribution would push any single day past `maxHoursPerDay`. Its `details.offenders` carries `{ date, currentLoad, addedHours, maxHoursPerDay }` for every offending day. Like other warnings, it's blocked by default and overridable with `force: true`.
+- Optimizer `unassigned` items carry a stable `reasonCode` (`NO_DAILY_CAPACITY` | `MISSING_SKILLS` | `DEPENDENCIES_UNSCHEDULED` | `NO_DEADLINE_RANGE` | `CYCLIC_DEPENDENCIES` | `OTHER`) plus a `reason` string. The manager UI groups unassigned tasks by code with a coloured Badge.
+- Topological sort runs BEFORE scoring so dependents always wait for their dependencies' `plannedEnd`. Cycles surface as `CYCLIC_DEPENDENCIES` rather than being silently ignored.
+
+**Heatmap reconstruction (web).** The DB doesn't store a per-day distribution map — only `plannedStart` / `plannedEnd` / `plannedHours`. `apps/web/src/lib/workload-week.ts#bucketAssignmentsByDay` reconstructs the per-day numbers by replaying assignments per user in `(plannedStart, createdAt)` order, front-filling each against a running daily-load map. This mirrors the optimizer's placement order well enough that the heatmap matches reality, but two managers concurrently creating overlapping manual assignments can momentarily produce a different reconstruction than the optimizer would have. If perfect determinism becomes important, store the distribution as a JSON column.
+
+**Timezone.** All date arithmetic uses UTC midnight (`Date.UTC(...)`) on the server, in the optimizer, and in the `frontFillSchedule` / `distributeAssignmentByDay` helpers in `@workforce/shared`. ISO date strings are `YYYY-MM-DD`. The web also reads/writes these as UTC dates, and uses `timeZone: 'UTC'` when formatting them for display so that a "Tue 19 May" cell doesn't shift to "Mon 18 May" for users east of UTC. The MVP is single-tenant and the demo data is UTC; multi-tenant would need a `User.timezone` column.
+
+See [ADR-0008](docs/adr/0008-day-level-scheduling.md) for the model rationale, alternatives considered, and the front-fill heuristic.
+
 ### Phase 8 — Design system
 
 The web app uses a hand-rolled design system: design tokens plus a primitive library, no Tailwind and no third-party component kit. Rationale and trade-offs are in [ADR-0007](docs/adr/0007-design-tokens-and-primitives.md).
@@ -203,3 +221,4 @@ When adding a new piece of UI: reach for the primitives first, only fall back to
 - [0005 — User & Skill admin endpoints — shape and protections](docs/adr/0005-user-skill-admin-routes.md)
 - [0006 — Assignment source and manager-locking model](docs/adr/0006-assignment-source-and-locking.md)
 - [0007 — Design tokens + in-house primitives over Tailwind/shadcn](docs/adr/0007-design-tokens-and-primitives.md)
+- [0008 — Day-level scheduling with front-fill front-end reconstruction](docs/adr/0008-day-level-scheduling.md)

@@ -36,10 +36,16 @@ export default function ManagerWorkloadPage() {
       });
   }, []);
 
+  const dailyMaxByUser = useMemo(() => {
+    const m = new Map<string, number>();
+    entries?.forEach((e) => m.set(e.userId, e.maxHoursPerDay));
+    return m;
+  }, [entries]);
+
   const bucketed = useMemo(() => {
-    if (!assignments) return null;
-    return bucketAssignmentsByDay(assignments, week);
-  }, [assignments, week]);
+    if (!assignments || !entries) return null;
+    return bucketAssignmentsByDay(assignments, week, dailyMaxByUser);
+  }, [assignments, entries, week, dailyMaxByUser]);
 
   const summary = useMemo(() => {
     if (!entries) return null;
@@ -83,8 +89,9 @@ export default function ManagerWorkloadPage() {
       title="Team workload"
       description={
         <>
-          Hours bucketed by task deadline for the current work week. Daily capacity is{' '}
-          <code className={styles.code}>maxHoursPerWeek / 5</code>. Run the optimizer to populate
+          Per-day hours from each assignment&apos;s plannedStart-plannedEnd range,
+          front-filled at the employee&apos;s{' '}
+          <code className={styles.code}>maxHoursPerDay</code>. Run the optimizer to populate
           assignments.
         </>
       }
@@ -120,9 +127,18 @@ export default function ManagerWorkloadPage() {
           <TrendingUp size={14} />
           <span>
             {bucketed.outsideWeekCount} assignment
-            {bucketed.outsideWeekCount === 1 ? '' : 's'} have a deadline outside this week (no
-            deadline, or earlier/later than Mon–Fri). They count toward weekly totals but aren&apos;t
-            shown in the table.
+            {bucketed.outsideWeekCount === 1 ? '' : 's'} have hours scheduled outside this Mon-Fri
+            window. They count toward weekly totals but aren&apos;t fully shown in the table.
+          </span>
+        </Card>
+      )}
+      {bucketed && bucketed.unscheduledCount > 0 && (
+        <Card padding="md" className={styles.outsideNote}>
+          <TriangleAlert size={14} />
+          <span>
+            {bucketed.unscheduledCount} assignment
+            {bucketed.unscheduledCount === 1 ? '' : 's'} have no plannedStart / plannedEnd yet.
+            Re-run the optimizer with &quot;Re-optimize everything&quot; to schedule them.
           </span>
         </Card>
       )}
@@ -156,7 +172,7 @@ export default function ManagerWorkloadPage() {
               </thead>
               <tbody>
                 {entries.map((e) => {
-                  const dailyMax = e.maxHours / 5;
+                  const dailyMax = e.maxHoursPerDay;
                   return (
                     <tr key={e.userId}>
                       <td className={styles.nameCol}>
