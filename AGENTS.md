@@ -38,8 +38,8 @@ pnpm typecheck         # typecheck everything
 Demo credentials (after `pnpm db:seed`):
 
 - Admin: `admin@demo.local` / `password`
-- Managers: `manager1@demo.local`, `manager2@demo.local` / `password`
-- Employees: `emp1@demo.local` … `emp15@demo.local` / `password`
+- Manager: `manager1@demo.local` / `password`
+- Employees: `emp1@demo.local` … `emp5@demo.local` / `password`
 
 ## 4. Architecture
 
