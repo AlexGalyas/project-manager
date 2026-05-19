@@ -13,11 +13,10 @@
 // even though the actual schedule spread it across two days. We now
 // honour what the optimizer (or manual auto-distribute) placed.
 
-import {
-  distributeAssignmentByDay,
-  type AssignmentWithRefsDto,
-  type IsoDate,
-  type WorkloadStatus,
+import type {
+  AssignmentWithRefsDto,
+  IsoDate,
+  WorkloadStatus,
 } from '@workforce/shared';
 
 export interface WeekDay {
@@ -56,17 +55,31 @@ export function cellStatus(hours: number, dailyMax: number): WorkloadStatus {
 }
 
 /**
- * Reconstruct each employee's per-day load by replaying their assignments in
- * (plannedStart, createdAt) order — the same order the optimizer would have
- * placed them — front-filling each one against the running dailyLoad map
- * with a per-day cap of `maxHoursPerDay`. This mirrors the optimizer's
- * placement so the heatmap matches what is actually scheduled.
+ * Reconstruct each employee's per-day load to match what the optimizer
+ * actually placed.
  *
- * - Assignments lacking plannedStart / plannedEnd (legacy rows that haven't
- *   been re-optimized yet) are counted as `unscheduledCount` so the UI can
- *   flag "needs scheduling".
- * - Hours that fall outside the visible Mon-Fri week count toward
- *   `outsideWeekCount`.
+ * The DB only stores per-assignment `plannedStart`, `plannedEnd`, and
+ * `plannedHours` — the exact per-day distribution isn't persisted. To
+ * recover it we replay the placement: walk a user's assignments in
+ * (plannedStart, createdAt) order and, for each one, front-fill its
+ * `plannedHours` into the user's running daily-load map starting from
+ * `plannedStart`. We respect `maxHoursPerDay` per day and SPILL into
+ * subsequent working days if the assignment's stored end is too tight
+ * (which happens when a later assignment overlapped its range — earlier
+ * placements steal capacity, the later one has to push out).
+ *
+ * `plannedEnd` is therefore only a *display hint*, not a hard stop. Using
+ * it as a strict boundary (the previous implementation did) under-reported
+ * hours whenever assignments overlapped: a 4h task on a day already full
+ * from an earlier task would simply vanish from the heatmap.
+ *
+ * - Assignments lacking plannedStart / plannedEnd (legacy rows) are
+ *   counted as `unscheduledCount` so the UI can flag "needs scheduling".
+ * - Assignments whose [plannedStart, plannedEnd] range stretches outside
+ *   the visible Mon-Fri week count toward `outsideWeekCount`.
+ *
+ * Hard cap on spill walk: 365 days from plannedStart. Anything beyond
+ * that is dropped to keep this loop bounded against pathological data.
  */
 export function bucketAssignmentsByDay(
   assignments: AssignmentWithRefsDto[],
@@ -82,11 +95,9 @@ export function bucketAssignmentsByDay(
   let outsideWeekCount = 0;
   let unscheduledCount = 0;
 
-  // Visible-week bounds for the outside-week count.
   const weekStartIso = week[0]?.iso ?? '';
   const weekEndIso = week[week.length - 1]?.iso ?? '';
 
-  // Group assignments by userId.
   const byUser = new Map<string, AssignmentWithRefsDto[]>();
   for (const a of assignments) {
     if (!a.plannedStart || !a.plannedEnd) {
@@ -105,8 +116,6 @@ export function bucketAssignmentsByDay(
 
   for (const [userId, list] of byUser) {
     const dailyMax = dailyMaxByUser.get(userId) ?? 8;
-    // Sort by plannedStart asc, then by createdAt asc — stable + matches
-    // the optimizer's placement order well enough for the reconstruction.
     list.sort((a, b) => {
       const pa = a.plannedStart ?? '';
       const pb = b.plannedStart ?? '';
@@ -116,32 +125,27 @@ export function bucketAssignmentsByDay(
 
     const userDaily = new Map<IsoDate, number>();
     for (const a of list) {
-      const dist = distributeAssignmentByDay({
-        plannedStart: a.plannedStart!.slice(0, 10),
-        plannedEnd: a.plannedEnd!.slice(0, 10),
-        plannedHours: a.plannedHours,
-        maxHoursPerDay: dailyMax,
-        includeWeekends: false,
-      });
-      // Re-fit against the user's running dailyLoad so we don't double-book
-      // a day. Carry overflow forward into the next working day inside the
-      // assignment's range.
-      let remaining = 0;
-      for (const [iso, h] of dist) {
-        const used = userDaily.get(iso) ?? 0;
-        const avail = Math.max(0, dailyMax - used);
-        if (avail <= 0) {
-          remaining += h;
-          continue;
+      // Spill-aware front-fill: start at plannedStart, keep walking working
+      // days forward until plannedHours is satisfied (or we hit the safety
+      // cap). plannedEnd is informational here.
+      let remaining = a.plannedHours;
+      const cursor = parseIsoDateUtc(a.plannedStart!.slice(0, 10));
+      const horizon = addDaysUtc(cursor, 365);
+      while (remaining > 0 && cursor.getTime() <= horizon.getTime()) {
+        const day = cursor.getUTCDay();
+        const isWeekend = day === 0 || day === 6;
+        if (!isWeekend) {
+          const iso = formatIsoDateUtc(cursor);
+          const used = userDaily.get(iso) ?? 0;
+          const avail = Math.max(0, dailyMax - used);
+          if (avail > 0) {
+            const take = Math.min(remaining, avail);
+            userDaily.set(iso, used + take);
+            remaining -= take;
+          }
         }
-        const take = Math.min(h + remaining, avail);
-        userDaily.set(iso, used + take);
-        remaining = h + remaining - take;
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
       }
-      // Anything still remaining doesn't fit in the assignment's stored range
-      // (e.g. because earlier assignments swallowed the entire window). That
-      // simply doesn't show up in the heatmap — the user will notice the
-      // mismatch and the manager can re-run the optimizer.
     }
 
     for (const [iso, hours] of userDaily) {
@@ -152,4 +156,24 @@ export function bucketAssignmentsByDay(
   }
 
   return { cells, outsideWeekCount, unscheduledCount };
+}
+
+// --- date helpers (UTC, no DST surprises) -----------------------------------
+
+function parseIsoDateUtc(iso: string): Date {
+  const [y, m, d] = iso.split('-').map((n) => Number.parseInt(n, 10));
+  return new Date(Date.UTC(y!, (m ?? 1) - 1, d ?? 1));
+}
+
+function addDaysUtc(d: Date, days: number): Date {
+  const next = new Date(d.getTime());
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
+function formatIsoDateUtc(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
