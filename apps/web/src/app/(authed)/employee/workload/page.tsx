@@ -1,10 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, ListTodo, TrendingUp } from 'lucide-react';
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  ListTodo,
+  RotateCcw,
+  TrendingUp,
+} from 'lucide-react';
 import type {
   AssignmentWithRefsDto,
   WorkloadEntryDto,
+  WorkloadStatus,
 } from '@workforce/shared';
 import { workloadApi } from '@/lib/api/workload';
 import { assignmentsApi } from '@/lib/api/assignments';
@@ -16,9 +24,30 @@ import {
 } from '@/lib/workload-week';
 import { toastError } from '@/stores/ui-store';
 import { PageContainer } from '@/components/layout';
-import { Badge, Card, EmptyState, SectionHeader, Skeleton } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, SectionHeader, Skeleton } from '@/components/ui';
 import { StatCard } from '@/components/dashboard';
 import styles from './page.module.scss';
+
+function statusForHours(planned: number, maxPerWeek: number): WorkloadStatus {
+  if (maxPerWeek <= 0) return 'normal';
+  if (planned > maxPerWeek) return 'over';
+  if (planned >= maxPerWeek * 0.8) return 'normal';
+  return 'under';
+}
+
+function formatWeekLabel(week: WeekDay[]): string {
+  if (week.length === 0) return '';
+  const first = week[0]!.date;
+  const last = week[week.length - 1]!.date;
+  const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  if (first.getFullYear() !== last.getFullYear()) {
+    return `${fmt(first)}, ${first.getFullYear()} – ${fmt(last)}, ${last.getFullYear()}`;
+  }
+  if (first.getMonth() === last.getMonth()) {
+    return `${first.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${last.getDate()}, ${first.getFullYear()}`;
+  }
+  return `${fmt(first)} – ${fmt(last)}, ${first.getFullYear()}`;
+}
 
 const STATUS_VARIANT: Record<string, 'neutral' | 'accent' | 'success'> = {
   TODO: 'neutral',
@@ -31,7 +60,12 @@ export default function EmployeeWorkloadPage() {
   const [mine, setMine] = useState<AssignmentWithRefsDto[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const week = useMemo<WeekDay[]>(() => getCurrentWorkWeek(), []);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const week = useMemo<WeekDay[]>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + weekOffset * 7);
+    return getCurrentWorkWeek(d);
+  }, [weekOffset]);
 
   useEffect(() => {
     Promise.all([workloadApi.me(), assignmentsApi.list()])
@@ -53,13 +87,25 @@ export default function EmployeeWorkloadPage() {
 
   const ready = me && mine && bucketed;
   const dailyMax = me ? me.maxHoursPerDay : 0;
-  const utilization =
-    me && me.maxHours > 0 ? Math.round((me.plannedHours / me.maxHours) * 100) : 0;
+
+  // Recompute planned hours for the DISPLAYED week (the API only ships
+  // current-week totals, so navigating to another week needs the client
+  // to sum heatmap cells).
+  const weekPlanned = useMemo(() => {
+    if (!me || !bucketed) return 0;
+    let sum = 0;
+    for (const d of week) {
+      sum += bucketed.cells.get(`${me.userId}|${d.iso}`) ?? 0;
+    }
+    return sum;
+  }, [me, bucketed, week]);
+  const weekStatus: WorkloadStatus = me ? statusForHours(weekPlanned, me.maxHours) : 'normal';
+  const utilization = me && me.maxHours > 0 ? Math.round((weekPlanned / me.maxHours) * 100) : 0;
 
   const utilizationTone: 'success' | 'warning' | 'danger' | 'accent' = me
-    ? me.status === 'over'
+    ? weekStatus === 'over'
       ? 'danger'
-      : me.status === 'normal'
+      : weekStatus === 'normal'
         ? 'warning'
         : 'success'
     : 'accent';
@@ -82,18 +128,57 @@ export default function EmployeeWorkloadPage() {
 
       <div className={styles.summary}>
         <StatCard
-          label="Planned this week"
-          value={me ? `${roundTo(me.plannedHours)}h` : null}
+          label={weekOffset === 0 ? 'Planned this week' : 'Planned (this view)'}
+          value={ready ? `${roundTo(weekPlanned)}h` : null}
           icon={<CalendarDays size={16} />}
         />
         <StatCard label="Weekly cap" value={me ? `${me.maxHours}h` : null} />
         <StatCard
           label="Utilization"
-          value={me ? `${utilization}%` : null}
+          value={ready ? `${utilization}%` : null}
           icon={<TrendingUp size={16} />}
           tone={utilizationTone}
-          description={me ? statusExplanation(me.status) : undefined}
+          description={ready ? statusExplanation(weekStatus) : undefined}
         />
+      </div>
+
+      <div className={styles.weekNav} role="group" aria-label="Week navigation">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          leftIcon={<ChevronLeft size={14} />}
+          onClick={() => setWeekOffset((w) => w - 1)}
+          aria-label="Previous week"
+        >
+          Previous
+        </Button>
+        <div className={styles.weekLabelGroup}>
+          <span className={styles.weekLabel}>{formatWeekLabel(week)}</span>
+          {weekOffset === 0 ? (
+            <span className={styles.weekBadge}>This week</span>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              leftIcon={<RotateCcw size={12} />}
+              onClick={() => setWeekOffset(0)}
+            >
+              Back to this week
+            </Button>
+          )}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          rightIcon={<ChevronRight size={14} />}
+          onClick={() => setWeekOffset((w) => w + 1)}
+          aria-label="Next week"
+        >
+          Next
+        </Button>
       </div>
 
       {!ready && !loadError && (

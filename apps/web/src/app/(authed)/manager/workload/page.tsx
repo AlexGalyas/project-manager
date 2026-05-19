@@ -1,8 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarRange, TrendingUp, TriangleAlert, Users } from 'lucide-react';
-import type { AssignmentWithRefsDto, WorkloadEntryDto } from '@workforce/shared';
+import {
+  CalendarRange,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  TrendingUp,
+  TriangleAlert,
+  Users,
+} from 'lucide-react';
+import type {
+  AssignmentWithRefsDto,
+  WorkloadEntryDto,
+  WorkloadStatus,
+} from '@workforce/shared';
 import { workloadApi } from '@/lib/api/workload';
 import { assignmentsApi } from '@/lib/api/assignments';
 import {
@@ -13,16 +25,44 @@ import {
 } from '@/lib/workload-week';
 import { toastError } from '@/stores/ui-store';
 import { PageContainer } from '@/components/layout';
-import { Avatar, Card, EmptyState, SectionHeader, Skeleton } from '@/components/ui';
+import { Avatar, Button, Card, EmptyState, SectionHeader, Skeleton } from '@/components/ui';
 import { StatCard } from '@/components/dashboard';
 import styles from './page.module.scss';
+
+function statusForHours(planned: number, maxPerWeek: number): WorkloadStatus {
+  if (maxPerWeek <= 0) return 'normal';
+  if (planned > maxPerWeek) return 'over';
+  if (planned >= maxPerWeek * 0.8) return 'normal';
+  return 'under';
+}
+
+function formatWeekLabel(week: WeekDay[]): string {
+  if (week.length === 0) return '';
+  const first = week[0]!.date;
+  const last = week[week.length - 1]!.date;
+  const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  if (first.getFullYear() !== last.getFullYear()) {
+    return `${fmt(first)}, ${first.getFullYear()} – ${fmt(last)}, ${last.getFullYear()}`;
+  }
+  if (first.getMonth() === last.getMonth()) {
+    return `${first.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${last.getDate()}, ${first.getFullYear()}`;
+  }
+  return `${fmt(first)} – ${fmt(last)}, ${first.getFullYear()}`;
+}
 
 export default function ManagerWorkloadPage() {
   const [entries, setEntries] = useState<WorkloadEntryDto[] | null>(null);
   const [assignments, setAssignments] = useState<AssignmentWithRefsDto[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const week = useMemo<WeekDay[]>(() => getCurrentWorkWeek(), []);
+  // weekOffset = 0 → current Mon-Fri week, -1 = previous, +1 = next, etc.
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const week = useMemo<WeekDay[]>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + weekOffset * 7);
+    return getCurrentWorkWeek(d);
+  }, [weekOffset]);
 
   useEffect(() => {
     Promise.all([workloadApi.list(), assignmentsApi.list()])
@@ -47,13 +87,37 @@ export default function ManagerWorkloadPage() {
     return bucketAssignmentsByDay(assignments, week, dailyMaxByUser);
   }, [assignments, entries, week, dailyMaxByUser]);
 
+  // The /api/workload entries report 'this calendar week'. When the user
+  // navigates to another week we recompute planned hours + status on the
+  // client by summing the heatmap cells for the displayed week.
+  const perWeek = useMemo(() => {
+    if (!entries || !bucketed) return null;
+    const hours = new Map<string, number>();
+    const status = new Map<string, WorkloadStatus>();
+    for (const e of entries) {
+      let sum = 0;
+      for (const d of week) {
+        sum += bucketed.cells.get(`${e.userId}|${d.iso}`) ?? 0;
+      }
+      hours.set(e.userId, sum);
+      status.set(e.userId, statusForHours(sum, e.maxHours));
+    }
+    return { hours, status };
+  }, [entries, bucketed, week]);
+
   const summary = useMemo(() => {
-    if (!entries) return null;
-    const total = entries.reduce((s, e) => s + e.plannedHours, 0);
+    if (!entries || !perWeek) return null;
+    const total = entries.reduce((s, e) => s + (perWeek.hours.get(e.userId) ?? 0), 0);
     const capacity = entries.reduce((s, e) => s + e.maxHours, 0);
-    const overloaded = entries.filter((e) => e.status === 'over').length;
-    const normal = entries.filter((e) => e.status === 'normal').length;
-    const under = entries.filter((e) => e.status === 'under').length;
+    let overloaded = 0;
+    let normal = 0;
+    let under = 0;
+    for (const e of entries) {
+      const s = perWeek.status.get(e.userId) ?? 'normal';
+      if (s === 'over') overloaded += 1;
+      else if (s === 'normal') normal += 1;
+      else under += 1;
+    }
     return {
       total,
       capacity,
@@ -62,7 +126,7 @@ export default function ManagerWorkloadPage() {
       under,
       utilization: capacity > 0 ? Math.round((total / capacity) * 100) : 0,
     };
-  }, [entries]);
+  }, [entries, perWeek]);
 
   if (loadError) {
     return (
@@ -99,7 +163,7 @@ export default function ManagerWorkloadPage() {
       <div className={styles.summary}>
         <StatCard
           label="Planned"
-          value={summary ? `${summary.total}h` : null}
+          value={summary ? `${roundTo(summary.total)}h` : null}
           icon={<CalendarRange size={16} />}
         />
         <StatCard
@@ -122,13 +186,52 @@ export default function ManagerWorkloadPage() {
         <StatCard label="Under" value={summary?.under ?? null} tone="success" />
       </div>
 
+      <div className={styles.weekNav} role="group" aria-label="Week navigation">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          leftIcon={<ChevronLeft size={14} />}
+          onClick={() => setWeekOffset((w) => w - 1)}
+          aria-label="Previous week"
+        >
+          Previous
+        </Button>
+        <div className={styles.weekLabelGroup}>
+          <span className={styles.weekLabel}>{formatWeekLabel(week)}</span>
+          {weekOffset === 0 ? (
+            <span className={styles.weekBadge}>This week</span>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              leftIcon={<RotateCcw size={12} />}
+              onClick={() => setWeekOffset(0)}
+            >
+              Back to this week
+            </Button>
+          )}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          rightIcon={<ChevronRight size={14} />}
+          onClick={() => setWeekOffset((w) => w + 1)}
+          aria-label="Next week"
+        >
+          Next
+        </Button>
+      </div>
+
       {bucketed && bucketed.outsideWeekCount > 0 && (
         <Card padding="md" className={styles.outsideNote}>
           <TrendingUp size={14} />
           <span>
             {bucketed.outsideWeekCount} assignment
             {bucketed.outsideWeekCount === 1 ? '' : 's'} have hours scheduled outside this Mon-Fri
-            window. They count toward weekly totals but aren&apos;t fully shown in the table.
+            window. Navigate to the surrounding weeks to see them.
           </span>
         </Card>
       )}
@@ -144,7 +247,7 @@ export default function ManagerWorkloadPage() {
       )}
 
       <Card padding="none">
-        {!entries || !bucketed ? (
+        {!entries || !bucketed || !perWeek ? (
           <div className={styles.skeletonStack}>
             {Array.from({ length: 6 }, (_, i) => (
               <div key={i} className={styles.skeletonRow}>
@@ -173,6 +276,8 @@ export default function ManagerWorkloadPage() {
               <tbody>
                 {entries.map((e) => {
                   const dailyMax = e.maxHoursPerDay;
+                  const weekHours = perWeek.hours.get(e.userId) ?? 0;
+                  const weekStatus = perWeek.status.get(e.userId) ?? 'normal';
                   return (
                     <tr key={e.userId}>
                       <td className={styles.nameCol}>
@@ -194,8 +299,8 @@ export default function ManagerWorkloadPage() {
                           </td>
                         );
                       })}
-                      <td className={`${styles.totalCol} ${styles[`total_${e.status}`]}`}>
-                        {roundTo(e.plannedHours)}h
+                      <td className={`${styles.totalCol} ${styles[`total_${weekStatus}`]}`}>
+                        {roundTo(weekHours)}h
                       </td>
                       <td className={styles.muted}>{e.maxHours}h</td>
                     </tr>
